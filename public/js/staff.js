@@ -10,14 +10,21 @@ const panel = document.getElementById('panel');
 async function loadList() {
   const { patients, aiMode } = await api('/api/dashboard');
   document.getElementById('ai-mode').textContent = 'AI: ' + aiMode;
-  document.getElementById('patient-list').innerHTML = patients.map((p) => `
+  // Patients whose monitoring ended (and who haven't sent anything new) go in their own section at the bottom
+  const ended = patients.filter((p) => p.monitoring?.status === 'ended' && p.openReports === 0);
+  const active = patients.filter((p) => !ended.includes(p));
+  const row = (p) => `
     <div class="patient-row border-${esc(p.top)} ${p.id === selectedId ? 'active' : ''}" data-id="${esc(p.id)}" tabindex="0" role="button">
       <div class="row" style="justify-content:space-between">
         <strong>${esc(p.name)}</strong>${sevBadge(p.top)}
       </div>
       <div class="muted small">${esc(p.procedure)} · ${esc(LANGS[p.language] || p.language)} · discharged ${timeAgo(p.dischargedAt)}</div>
+      ${monitoringLabel(p.monitoring)}
       ${p.alerts.length ? `<ul class="alert-list">${p.alerts.map((a) => `<li>${esc(a.text)}</li>`).join('')}</ul>` : '<div class="small muted">No alerts</div>'}
-    </div>`).join('');
+    </div>`;
+  document.getElementById('patient-list').innerHTML =
+    active.map(row).join('') +
+    (ended.length ? `<h3 class="muted" style="margin:18px 0 8px">Monitoring ended</h3>${ended.map(row).join('')}` : '');
   document.querySelectorAll('.patient-row').forEach((el) => {
     const open = () => openPatient(el.dataset.id);
     el.onclick = open;
@@ -138,6 +145,12 @@ function renderReview() {
     ${plan.warning_signs?.length ? `<div class="card"><h3>Warning signs found</h3><ul>${plan.warning_signs.map((w) => `<li>${esc(w)}</li>`).join('')}</ul></div>` : ''}
 
     <div class="card row" style="justify-content:space-between">
+      <div class="row">
+        <label for="rv-monitor" style="margin:0">Monitor this patient for</label>
+        <select id="rv-monitor" style="width:auto">
+          ${[7, 14, 30].map((d) => `<option value="${d}" ${d === (plan.monitorDays || 14) ? 'selected' : ''}>${d} days</option>`).join('')}
+        </select>
+      </div>
       <span class="muted">Approving as <strong>${esc(nurseName())}</strong></span>
       <button class="primary big" id="approve-btn">Approve &amp; send to patient</button>
     </div>`;
@@ -148,9 +161,9 @@ function renderReview() {
       <input data-f="dose" value="${esc(m.dose)}" aria-label="Dose" />
       <input data-f="time" value="${esc(m.time)}" aria-label="When" />
       <input data-f="instructions_en" value="${esc(m.instructions_en)}" aria-label="Instructions" />
-      <button class="remove" aria-label="Remove">✕</button>
+      <button class="remove" aria-label="Remove this item" style="color:var(--urgent);background:var(--urgent-soft);border-color:var(--urgent);font-weight:700;justify-content:center">🗑 Remove</button>
     </div>`;
-    // Each appointment: what, when, in person or virtual, then location OR video link
+  // Each appointment: what, when, in person or virtual, then location OR video link
   const apptRow = (a = {}) => {
     const virtual = a.mode === 'virtual';
     return `
@@ -167,14 +180,14 @@ function renderReview() {
         <div class="appt-location ${virtual ? 'hidden' : ''}"><label class="small">Location</label><input data-f="location" value="${esc(a.location)}" placeholder="Hospital, clinic, room number" /></div>
         <div class="appt-link ${virtual ? '' : 'hidden'}"><label class="small">Video call link</label><input data-f="link" value="${esc(a.link)}" placeholder="https://zoom.us/j/..." /></div>
       </div>
-      <button class="remove small" style="margin-top:8px">Remove appointment</button>
+      <button class="remove small" style="margin-top:8px;color:var(--urgent);background:var(--urgent-soft);border-color:var(--urgent);font-weight:700">🗑 Remove appointment</button>
     </div>`;
   };
   const checkRow = (c = {}) => `
     <div class="edit-row check" data-kind="check" data-id="${esc(c.id || '')}">
       <select data-f="type" aria-label="Type"><option value="med" ${c.type === 'med' ? 'selected' : ''}>💊 Med</option><option value="task" ${c.type !== 'med' ? 'selected' : ''}>🚶 Task</option></select>
       <input data-f="task_en" value="${esc(c.task_en)}" aria-label="Checklist item" />
-      <button class="remove" aria-label="Remove">✕</button>
+      <button class="remove" aria-label="Remove this item" style="color:var(--urgent);background:var(--urgent-soft);border-color:var(--urgent);font-weight:700;justify-content:center">🗑 Remove</button>
     </div>`;
 
   const meds = document.getElementById('rv-meds');
@@ -187,7 +200,6 @@ function renderReview() {
   document.getElementById('add-appt').onclick = () => appts.insertAdjacentHTML('beforeend', apptRow());
   document.getElementById('add-check').onclick = () => checks.insertAdjacentHTML('beforeend', checkRow());
   panel.onclick = (e) => { if (e.target.classList.contains('remove')) e.target.closest('.edit-row').remove(); };
-
   // Switching In person / Virtual shows the matching field
   appts.onchange = (e) => {
     if (!e.target.classList.contains('appt-mode')) return;
@@ -210,21 +222,22 @@ function renderReview() {
       medications: read(meds).filter((m) => m.name),
       appointments: read(appts).filter((a) => a.what_en),
       checklist: read(checks).filter((c) => c.task_en),
-      warning_signs: plan.warning_signs || []
+      warning_signs: plan.warning_signs || [],
+      monitorDays: Number(document.getElementById('rv-monitor').value)
     };
     if (!edited.explanation_en) return toast('Add an explanation first');
-
     // Only keep the field that matches the type, and make sure it's filled in
     for (const a of edited.appointments) {
       if (a.mode === 'virtual') {
         a.location = '';
+        // "zoom.us/j/123" -> "https://zoom.us/j/123"
+        if (a.link && !/^https?:\/\//i.test(a.link)) a.link = 'https://' + a.link;
         if (!/^https?:\/\//i.test(a.link)) return toast(`Add a video call link (starting with https://) for "${a.what_en}"`);
       } else {
         a.link = '';
         if (!a.location) return toast(`Add a location for "${a.what_en}"`);
       }
     }
-
     e.target.disabled = true;
     e.target.textContent = 'Translating and sending…';
     try {
@@ -247,6 +260,15 @@ function renderDetail() {
       </div>
       <p class="muted small">${esc(p.procedure)} · ${esc(LANGS[p.language] || p.language)} · plan approved by ${esc(plan.approvedBy)} ${timeAgo(plan.approvedAt)}</p>
       <p><strong>${sinceDischarge(p.dischargedAt)}</strong></p>
+      ${p.monitoring && p.monitoring.status !== 'not_started' ? `
+      <div class="row" style="justify-content:space-between;padding:10px 12px;border-radius:12px;background:var(--bg);margin-bottom:10px">
+        <span>${monitoringLabel(p.monitoring, true)}</span>
+        <span class="row">
+          ${p.monitoring.status === 'active'
+            ? `<button data-monitor="extend">Extend 7 days</button><button data-monitor="end">End monitoring</button>`
+            : `<button class="primary" data-monitor="extend">Reopen for 7 days</button>`}
+        </span>
+      </div>` : ''}
       ${p.alerts.length ? `<ul>${p.alerts.map((a) => `<li>${sevBadge(a.level)} ${esc(a.text)}</li>`).join('')}</ul>` : ''}
       <div class="row small"><span class="muted">Patient link:</span> <a href="${patientLink}" target="_blank">${esc(patientLink)}</a></div>
     </div>
@@ -277,12 +299,27 @@ function renderDetail() {
     </div>
 
     <div class="card">
+      <h3>Timeline</h3>
+      ${buildTimeline(p)}
+    </div>
+
+    <div class="card">
       <h3>Family Circle</h3>
       ${p.family.length ? p.family.map((f) => `<div>${esc(f.name)} <span class="muted small">(${esc(f.relationship)}) – sees: ${Object.entries(f.permissions).filter(([, v]) => v).map(([k]) => k).join(', ') || 'nothing'}</span></div>`).join('') : '<p class="muted">No family members invited.</p>'}
     </div>`;
 
   document.getElementById('reports').insertAdjacentHTML('beforeend', p.reports.map(reportCard).join(''));
   document.getElementById('redraft').onclick = () => { current.plan.status = 'draft'; mode = 'review'; render(); };
+  panel.querySelectorAll('[data-monitor]').forEach((btn) => {
+    btn.onclick = async () => {
+      if (btn.dataset.monitor === 'end' && !confirm('End monitoring? Automatic alerts will stop. The patient can still send reports.')) return;
+      try {
+        await api(`/api/patients/${p.id}/monitoring`, { method: 'POST', body: { action: btn.dataset.monitor, days: 7 } });
+        toast(btn.dataset.monitor === 'end' ? 'Monitoring ended' : 'Monitoring extended by 7 days');
+        await openPatient(p.id);
+      } catch (err) { toast(err.message); }
+    };
+  });
 
   panel.querySelectorAll('[data-respond]').forEach((btn) => {
     btn.onclick = () => {
@@ -306,6 +343,7 @@ function reportCard(r) {
     <div class="card border-${esc(r.severity)}" style="box-shadow:none">
       <div class="row" style="justify-content:space-between">
         <div class="row">${sevBadge(r.severity)} ${r.emergency ? '<span class="sev urgent">911 shown</span>' : ''}
+          ${r.afterMonitoring ? '<span class="pill">↩ Returned after monitoring ended</span>' : ''}
           <span class="muted small">from ${esc(r.fromName)} (${esc(r.from)}) · ${timeAgo(r.createdAt)}</span></div>
         <label class="small row" style="font-weight:400">Severity
           <select data-override data-rid="${esc(r.id)}" style="width:auto">
@@ -420,6 +458,49 @@ function renderStaffChecklist(plan, dischargedAt) {
   }).join('');
 }
 
+// Everything that happened to this patient, newest first: discharge, approval, check-offs, reports, replies
+function buildTimeline(p) {
+  const events = [];
+  events.push({ at: p.dischargedAt, icon: '🏥', text: `Discharged after ${p.procedure}` });
+  if (p.plan?.approvedAt) events.push({ at: p.plan.approvedAt, icon: '✅', text: `Care plan approved by ${p.plan.approvedBy}` });
+
+  // Check-offs are stored per day, so group them into one line per day
+  const byDay = {};
+  for (const c of p.plan?.checklist || []) {
+    for (const day of c.log || []) (byDay[day] = byDay[day] || []).push(c.task_en);
+  }
+  for (const [day, tasks] of Object.entries(byDay)) {
+    events.push({ at: day + 'T23:00:00', icon: '☑️', text: `Checked off: ${tasks.join(', ')}`, dayOnly: true });
+  }
+
+  for (const r of p.reports) {
+    events.push({ at: r.createdAt, icon: '⚠️', text: `${r.fromName} reported a problem`, sev: r.severity });
+    if (r.respondedAt) events.push({ at: r.respondedAt, icon: '💬', text: `${r.respondedBy}: ${r.staffResponse}${r.staffNote ? ` – "${r.staffNote}"` : ''}` });
+  }
+
+  events.sort((a, b) => b.at.localeCompare(a.at));
+  return `<ul style="list-style:none;padding:0;margin:0">${events.map((e) => `
+    <li style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span aria-hidden="true">${e.icon}</span>
+      <span style="flex:1">${esc(e.text)} ${e.sev ? sevBadge(e.sev) : ''}</span>
+      <span class="muted small" style="white-space:nowrap">${e.dayOnly ? new Date(e.at).toLocaleDateString() : timeAgo(e.at)}</span>
+    </li>`).join('')}</ul>`;
+}
+
+// "Day 4 of 14 · monitoring until Nov 17" or "Monitoring ended Nov 6"
+function monitoringLabel(m, long) {
+  if (!m || m.status === 'not_started') return '';
+  const date = new Date(m.endsAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  if (m.status === 'ended') return `<div class="small"><strong>Monitoring ended ${date}</strong>${long ? ' · automatic alerts are off; the patient can still send reports' : ''}</div>`;
+  const pct = Math.round((m.day / m.total) * 100);
+  return `<div class="small">
+      <strong>Day ${m.day} of ${m.total}</strong> · monitoring until ${date}
+      <div style="height:6px;border-radius:99px;background:var(--border);margin-top:4px;${long ? 'width:220px' : ''}">
+        <div style="height:6px;border-radius:99px;background:var(--brand);width:${pct}%"></div>
+      </div>
+    </div>`;
+}
+
 async function respond(rid, body) {
   try {
     await api(`/api/patients/${current.id}/reports/${rid}/respond`, { method: 'POST', body: { ...body, nurseName: nurseName() } });
@@ -433,7 +514,9 @@ loadList();
 // Poll so new reports appear live during the demo (not while editing a draft)
 setInterval(() => {
   loadList();
-  if (mode === 'detail' && selectedId) api('/api/patients/' + selectedId).then((p) => {
+  // Don't redraw while the nurse is typing a note
+  const typing = document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+  if (mode === 'detail' && selectedId && !typing) api('/api/patients/' + selectedId).then((p) => {
     if (JSON.stringify(p.reports.map((r) => [r.id, r.severity, r.staffResponse])) !== JSON.stringify(current.reports.map((r) => [r.id, r.severity, r.staffResponse]))) {
       current = p;
       renderDetail();

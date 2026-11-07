@@ -22,12 +22,14 @@ async function callModel({ system, text, image }) {
   if (PROVIDER === 'openai') {
     const content = [{ type: 'text', text }];
     if (image) content.push({ type: 'image_url', image_url: { url: `data:${image.mediaType};base64,${image.data}` } });
-    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Works for OpenAI and any OpenAI-compatible API (e.g. xAI Grok) via OPENAI_BASE_URL
+    const base = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
+    const r = await fetch(`${base}/chat/completions`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-        response_format: { type: 'json_object' },
+        ...(base.includes('api.openai.com') ? { response_format: { type: 'json_object' } } : {}),
         messages: [{ role: 'system', content: system }, { role: 'user', content }]
       })
     });
