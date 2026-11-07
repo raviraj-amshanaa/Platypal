@@ -123,6 +123,7 @@ function seed() {
           status: 'approved',
           approvedBy: 'Nurse Osei',
           approvedAt: daysAgo(5),
+          monitorDays: 4, // ended yesterday, to demo "Monitoring ended"
           explanation_en: 'Your gallbladder was removed. Eat small, low-fat meals and keep the small wounds clean.',
           explanation_translated: 'Le quitaron la vesícula. Coma comidas pequeñas y bajas en grasa y mantenga limpias las heridas.',
           medications: [
