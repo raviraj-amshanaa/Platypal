@@ -137,7 +137,7 @@ async function translatePlan(plan, language) {
 }
 
 // ---------- 3. Triage a trouble report (voice transcript + photo + text) ----------
-const TRIAGE_SYSTEM = `You help a hospital nurse triage messages from recently discharged patients. You do NOT diagnose. A nurse makes the final decision.
+const TRIAGE_SYSTEM = `You help a hospital nurse triage messages from recently discharged patients. You do NOT diagnose. Never name a specific disease or condition; describe only the symptoms and why they need attention. A nurse makes the final decision.
 Return ONLY JSON:
 {"translation": string (English translation of the patient's words, or "" if already English),
  "photo_description": string (neutral description of what is visible, e.g. "redness around a surgical wound"; "" if no photo),
