@@ -43,8 +43,7 @@ function render() {
         <div><strong>${esc(m.name)}</strong> ${esc(m.dose)}<br><span class="muted">${esc(m.time)}</span><br><span lang="${lang}">${esc(t(m.instructions_en, m.instructions_translated))}</span></div>
         <button aria-label="Read aloud" data-say="${esc(`${m.name}. ${m.time}. ${t(m.instructions_en, m.instructions_translated)}`)}">🔊</button>
       </div>`).join('');
-    $('appts').innerHTML = plan.appointments.map((a) => `
-      <div style="padding:8px 0"><strong lang="${lang}">${esc(t(a.what_en, a.what_translated))}</strong><br><span class="muted">${esc(a.when)}</span></div>`).join('') || '<p class="muted">None</p>';
+      $('appts').innerHTML = plan.appointments.map((a) => appointmentHtml(a, t(a.what_en, a.what_translated), lang)).join('') || '<p class="muted">None</p>';
     document.querySelectorAll('[data-say]').forEach((b) => (b.onclick = () => speak(b.dataset.say, lang)));
   }
 

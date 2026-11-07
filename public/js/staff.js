@@ -150,15 +150,29 @@ function renderReview() {
       <input data-f="instructions_en" value="${esc(m.instructions_en)}" aria-label="Instructions" />
       <button class="remove" aria-label="Remove">✕</button>
     </div>`;
-  const apptRow = (a = {}) => `
-    <div class="edit-row two" data-kind="appt">
-      <input data-f="what_en" value="${esc(a.what_en)}" aria-label="Appointment" />
-      <input data-f="when" value="${esc(a.when)}" aria-label="When" />
-      <button class="remove" aria-label="Remove">✕</button>
+    // Each appointment: what, when, in person or virtual, then location OR video link
+  const apptRow = (a = {}) => {
+    const virtual = a.mode === 'virtual';
+    return `
+    <div class="edit-row appt-edit" data-kind="appt" style="display:block;border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px">
+      <div class="grid cols-2" style="gap:8px">
+        <div><label class="small">Appointment</label><input data-f="what_en" value="${esc(a.what_en)}" placeholder="e.g. Staple removal" /></div>
+        <div><label class="small">Date and time</label><input data-f="when" value="${esc(a.when)}" placeholder="e.g. Nov 14, 10:00am" /></div>
+        <div><label class="small">Type</label>
+          <select data-f="mode" class="appt-mode">
+            <option value="in_person" ${!virtual ? 'selected' : ''}>🏥 In person</option>
+            <option value="virtual" ${virtual ? 'selected' : ''}>💻 Virtual (video call)</option>
+          </select>
+        </div>
+        <div class="appt-location ${virtual ? 'hidden' : ''}"><label class="small">Location</label><input data-f="location" value="${esc(a.location)}" placeholder="Hospital, clinic, room number" /></div>
+        <div class="appt-link ${virtual ? '' : 'hidden'}"><label class="small">Video call link</label><input data-f="link" value="${esc(a.link)}" placeholder="https://zoom.us/j/..." /></div>
+      </div>
+      <button class="remove small" style="margin-top:8px">Remove appointment</button>
     </div>`;
+  };
   const checkRow = (c = {}) => `
     <div class="edit-row check" data-kind="check" data-id="${esc(c.id || '')}">
-      <select data-f="type" aria-label="Type"><option value="med" ${c.type === 'med' ? 'selected' : ''}>Medicine</option><option value="task" ${c.type !== 'med' ? 'selected' : ''}>Task</option></select>
+      <select data-f="type" aria-label="Type"><option value="med" ${c.type === 'med' ? 'selected' : ''}>💊 Med</option><option value="task" ${c.type !== 'med' ? 'selected' : ''}>🚶 Task</option></select>
       <input data-f="task_en" value="${esc(c.task_en)}" aria-label="Checklist item" />
       <button class="remove" aria-label="Remove">✕</button>
     </div>`;
@@ -173,6 +187,15 @@ function renderReview() {
   document.getElementById('add-appt').onclick = () => appts.insertAdjacentHTML('beforeend', apptRow());
   document.getElementById('add-check').onclick = () => checks.insertAdjacentHTML('beforeend', checkRow());
   panel.onclick = (e) => { if (e.target.classList.contains('remove')) e.target.closest('.edit-row').remove(); };
+
+  // Switching In person / Virtual shows the matching field
+  appts.onchange = (e) => {
+    if (!e.target.classList.contains('appt-mode')) return;
+    const row = e.target.closest('.appt-edit');
+    const virtual = e.target.value === 'virtual';
+    row.querySelector('.appt-location').classList.toggle('hidden', virtual);
+    row.querySelector('.appt-link').classList.toggle('hidden', !virtual);
+  };
 
   const read = (container) => [...container.querySelectorAll('.edit-row')].map((row) => {
     const o = {};
@@ -190,6 +213,18 @@ function renderReview() {
       warning_signs: plan.warning_signs || []
     };
     if (!edited.explanation_en) return toast('Add an explanation first');
+
+    // Only keep the field that matches the type, and make sure it's filled in
+    for (const a of edited.appointments) {
+      if (a.mode === 'virtual') {
+        a.location = '';
+        if (!/^https?:\/\//i.test(a.link)) return toast(`Add a video call link (starting with https://) for "${a.what_en}"`);
+      } else {
+        a.link = '';
+        if (!a.location) return toast(`Add a location for "${a.what_en}"`);
+      }
+    }
+
     e.target.disabled = true;
     e.target.textContent = 'Translating and sending…';
     try {
@@ -221,14 +256,23 @@ function renderDetail() {
     </div>
 
     <div class="card">
-      <h3>Today's checklist</h3>
-      ${plan.checklist.map((c) => {
-        const done = (c.log || []).includes(new Date().toISOString().slice(0, 10));
-        return `<div>${done ? '✅' : '⬜'} ${esc(c.task_en)} <span class="muted small">(${(c.log || []).length} days done)</span></div>`;
-      }).join('')}
-      <h3 style="margin-top:14px">Medications</h3>
-      <ul>${plan.medications.map((m) => `<li><strong>${esc(m.name)}</strong> ${esc(m.dose)} – ${esc(m.time)}</li>`).join('')}</ul>
-      <button id="redraft">Edit care plan</button>
+      <div class="row" style="justify-content:space-between">
+        <h3 style="margin:0">Checklist progress</h3>
+        <span class="muted small">Click an item for details</span>
+      </div>
+      ${renderStaffChecklist(plan)}
+    </div>
+
+    <div class="card">
+      <h3>Medications</h3>
+      ${plan.medications.map((m) => `
+        <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <strong>${esc(m.name)}</strong> ${esc(m.dose)}
+          <div class="muted small">${esc(m.time)}${m.instructions_en ? ` · ${esc(m.instructions_en)}` : ''}</div>
+        </div>`).join('') || '<p class="muted">None</p>'}
+      <h3 style="margin-top:14px">Appointments</h3>
+      ${plan.appointments.map((a) => appointmentHtml(a, a.what_en)).join('') || '<p class="muted">None</p>'}
+      <button id="redraft" style="margin-top:12px">Edit care plan</button>
     </div>
 
     <div class="card">
@@ -287,6 +331,82 @@ function reportCard(r) {
              <button class="danger" data-respond="Please go to the emergency room now" data-rid="${esc(r.id)}">Advise ER visit</button>
            </div>`}
     </div>`;
+}
+
+// ---------- checklist progress (staff detail) ----------
+const dayKey = (daysBack) => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysBack);
+  return d.toISOString().slice(0, 10);
+};
+
+function renderStaffChecklist(plan) {
+  if (!plan.checklist.length) return '<p class="muted">No checklist items.</p>';
+  const start = (plan.approvedAt || '').slice(0, 10);
+  const today = dayKey(0);
+
+  return plan.checklist.map((c) => {
+    const log = c.log || [];
+    const doneToday = log.includes(today);
+
+    // Last 7 days, oldest on the left. Days before the plan started are greyed out.
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const key = dayKey(i);
+      const label = new Date(key + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' });
+      let state = 'none';
+      if (key >= start) state = log.includes(key) ? 'done' : i === 0 ? 'pending' : 'missed';
+      days.push({ key, label, state });
+    }
+
+    // Consecutive missed days before today
+    let missedInRow = 0;
+    for (let i = 1; i <= 7; i++) {
+      const key = dayKey(i);
+      if (key < start || log.includes(key)) break;
+      missedInRow++;
+    }
+    const activeDays = days.filter((d) => d.state !== 'none' && d.state !== 'pending').length;
+    const doneDays = days.filter((d) => d.state === 'done').length;
+
+    let status;
+    if (doneToday) status = { text: 'Done today', color: 'var(--routine)', bg: 'var(--routine-soft)' };
+    else if (missedInRow >= 2) status = { text: `Missed ${missedInRow} days`, color: 'var(--urgent)', bg: 'var(--urgent-soft)' };
+    else status = { text: 'Not done yet today', color: 'var(--muted)', bg: 'var(--bg)' };
+
+    const style = {
+      done: 'background:var(--routine);color:#fff',
+      missed: 'background:var(--urgent-soft);color:var(--urgent)',
+      pending: 'background:var(--bg);color:var(--muted);border:1px dashed var(--border)',
+      none: 'background:transparent;color:var(--border)'
+    };
+    const symbol = { done: '✓', missed: '✗', pending: '…', none: '·' };
+    const strip = days.map((d) => `
+      <div style="text-align:center;width:38px">
+        <div class="small muted">${d.label}</div>
+        <div title="${d.key}: ${d.state}" style="height:30px;border-radius:8px;display:grid;place-items:center;font-weight:700;${style[d.state]}">${symbol[d.state]}</div>
+      </div>`).join('');
+
+    return `
+      <details style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-top:10px">
+        <summary style="cursor:pointer;list-style:none">
+          <div class="row" style="justify-content:space-between">
+            <div class="row">
+              <span style="font-size:1.3em" aria-hidden="true">${c.type === 'med' ? '💊' : '🚶'}</span>
+              <strong>${esc(c.task_en)}</strong>
+            </div>
+            <span style="padding:3px 10px;border-radius:999px;font-size:.85em;font-weight:700;color:${status.color};background:${status.bg}">${status.text}</span>
+          </div>
+          <div class="row" style="gap:6px;margin-top:10px">${strip}</div>
+        </summary>
+        <div class="small" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div><strong>Type:</strong> ${c.type === 'med' ? 'Daily medicine' : 'Daily task'}</div>
+          <div><strong>Last 7 days:</strong> done ${doneDays} of ${activeDays} day${activeDays === 1 ? '' : 's'}${missedInRow ? `, missed the last ${missedInRow} in a row` : ''}</div>
+          <div><strong>Last done:</strong> ${log.length ? new Date([...log].sort().pop() + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }) : 'Never'}</div>
+          ${c.task_translated && c.task_translated !== c.task_en ? `<div><strong>Patient sees:</strong> ${esc(c.task_translated)}</div>` : ''}
+        </div>
+      </details>`;
+  }).join('');
 }
 
 async function respond(rid, body) {

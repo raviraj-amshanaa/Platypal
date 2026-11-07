@@ -81,7 +81,7 @@ Rules:
 - Return ONLY JSON with this shape:
 {"explanation_en": string (3-4 short sentences: what happened, what to do, what to watch for),
  "medications": [{"name": string, "dose": string, "time": string, "instructions_en": string}],
- "appointments": [{"what_en": string, "when": string}],
+ "appointments": [{"what_en": string, "when": string, "mode": "in_person" | "virtual", "location": string (address/clinic/room if in person, else ""), "link": string (video call link if virtual, else "")}],
  "checklist": [{"type": "med" | "task", "task_en": string}],
  "warning_signs": [string]}
 Checklist items with type "med" are daily medication reminders; "task" items are other daily actions.`;
@@ -178,7 +178,10 @@ function mockDraft(procedure) {
       { name: 'Acetaminophen', dose: '500 mg', time: 'Every 6 hours as needed', instructions_en: 'For pain. No more than 8 tablets a day.' },
       { name: 'Cephalexin', dose: '500 mg', time: '8am, 2pm, 8pm', instructions_en: 'Antibiotic. Finish the whole bottle.' }
     ],
-    appointments: [{ what_en: 'Follow-up with family doctor', when: 'Within 7 days' }],
+    appointments: [
+      { what_en: 'Follow-up with family doctor', when: 'Within 7 days', mode: 'in_person', location: 'Your family doctor\'s office' },
+      { what_en: 'Video check-in with surgical nurse', when: 'In 3 days, 2:00pm', mode: 'virtual', link: 'https://zoom.us/j/0000000000' }
+    ],
     checklist: [
       { type: 'med', task_en: 'Take morning antibiotic' },
       { type: 'med', task_en: 'Take evening antibiotic' },

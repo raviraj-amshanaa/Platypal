@@ -134,6 +134,30 @@ function initA11yToggles() {
   }
 }
 
+// One appointment, shown the same way on staff, patient and family pages.
+// title = the appointment name in whichever language the viewer reads.
+function appointmentHtml(a, title, lang) {
+  const virtual = a.mode === 'virtual';
+  const safeLink = /^https?:\/\//i.test(a.link || '') ? a.link : '';
+  const where = virtual
+    ? (safeLink
+        ? `<a class="btn primary" href="${esc(safeLink)}" target="_blank" rel="noopener">💻 Join video call</a>`
+        : '<span class="muted">Video link coming soon</span>')
+    : (a.location
+        ? `<div>📍 ${esc(a.location)}</div>
+           <a class="small" href="https://www.google.com/maps/search/${encodeURIComponent(a.location)}" target="_blank" rel="noopener">Open in Maps</a>`
+        : '<span class="muted">Location coming soon</span>');
+  return `
+    <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+      <div class="row" style="justify-content:space-between">
+        <strong ${lang ? `lang="${esc(lang)}"` : ''}>${esc(title)}</strong>
+        <span class="pill">${virtual ? '💻 Virtual' : '🏥 In person'}</span>
+      </div>
+      <div class="muted">🗓 ${esc(a.when)}</div>
+      <div style="margin-top:6px">${where}</div>
+    </div>`;
+}
+
 function qs(name) {
   return new URLSearchParams(location.search).get(name);
 }

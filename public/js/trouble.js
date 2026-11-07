@@ -70,7 +70,7 @@ function renderReportsList(reports, { english } = {}) {
         <div class="small muted">${timeAgo(r.createdAt)} · from ${esc(r.fromName)}</div>
         <div>${esc(r.transcript || r.text || (r.hasPhoto ? 'Photo sent' : ''))}</div>
         ${r.staffResponse
-          ? `<div class="notice" style="margin-top:8px">💬 <strong>${esc(r.staffResponse)}</strong><div class="small muted">${esc(r.respondedBy || 'Care team')}, ${timeAgo(r.respondedAt)}</div></div>`
+          ? `<div class="notice" style="margin-top:8px">💬 <strong>${esc(r.staffResponse)}</strong>${r.staffNote ? `<div style="margin-top:4px">${esc(r.staffNote)}</div>` : ''}<div class="small muted">${esc(r.respondedBy || 'Care team')}, ${timeAgo(r.respondedAt)}</div></div>`
           : `<div class="small muted" style="margin-top:6px">Waiting for your care team…</div>`}
       </div>`).join('');
 }
