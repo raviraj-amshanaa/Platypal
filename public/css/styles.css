@@ -1,35 +1,37 @@
 /* Shared design system. Person D owns this file. Change colors here, not in pages. */
 :root {
-  --bg: #f6f5fb;
-  --surface: #ffffff;
-  --text: #1c1830;
-  --muted: #5e5873;
-  --border: #e3e0ee;
-  --brand: #5b3fd1;
-  --brand-ink: #ffffff;
-  --brand-soft: #ece7ff;
+  /* Same palette as the sign-in page (auth.css) */
+  --bg: oklch(0.975 0.012 85);
+  --surface: oklch(0.995 0.005 85);
+  --text: oklch(0.25 0.03 200);
+  --muted: oklch(0.47 0.03 200);
+  --border: oklch(0.88 0.02 85);
+  --brand: oklch(0.48 0.09 190);
+  --brand-ink: oklch(0.98 0.01 85);
+  --brand-soft: oklch(0.94 0.03 190);
   --urgent: #c62828;
   --urgent-soft: #fdecec;
   --soon: #b26a00;
   --soon-soft: #fff4e0;
   --routine: #2e7d32;
   --routine-soft: #e8f5e9;
-  --radius: 14px;
-  --shadow: 0 1px 2px rgba(28, 24, 48, .06), 0 4px 16px rgba(28, 24, 48, .05);
-  --font: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --radius: 1rem;
+  --shadow: 0 1px 2px oklch(0.25 0.03 200 / .06), 0 8px 24px -10px oklch(0.25 0.03 200 / .18);
+  --font: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
 }
 * { box-sizing: border-box; }
-body { margin: 0; font-family: var(--font); background: var(--bg); color: var(--text); font-size: 17px; line-height: 1.5; }
+body { margin: 0; font-family: var(--font); background: radial-gradient(circle at 15% 0%, oklch(0.72 0.13 45 / 0.14), transparent 40%), radial-gradient(circle at 90% 100%, oklch(0.55 0.1 190 / 0.14), transparent 45%) fixed, var(--bg); color: var(--text); font-size: 17px; line-height: 1.5; }
 body.large { font-size: 21px; }
-body.contrast { --bg: #000; --surface: #000; --text: #fff; --muted: #ddd; --border: #fff; --brand: #ffd400; --brand-ink: #000; --brand-soft: #222; }
+body.contrast { background: var(--bg); --bg: #000; --surface: #000; --text: #fff; --muted: #ddd; --border: #fff; --brand: #ffd400; --brand-ink: #000; --brand-soft: #222; }
 a { color: var(--brand); }
-h1, h2, h3 { line-height: 1.2; margin: 0 0 .5em; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.2; margin: 0 0 .5em; }
 h1 { font-size: 1.6em; } h2 { font-size: 1.25em; } h3 { font-size: 1.05em; }
 .muted { color: var(--muted); }
 .small { font-size: .85em; }
 
-.topbar { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
-.brand { font-weight: 700; font-size: 1.2em; color: var(--brand); text-decoration: none; }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 14px 20px; background: color-mix(in oklch, var(--surface) 85%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
+.brand { font-family: var(--font-display); font-weight: 600; font-size: 1.5em; color: var(--brand); text-decoration: none; }
 .topbar .spacer { flex: 1; }
 .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .8em; font-weight: 600; background: var(--brand-soft); color: var(--brand); }
 
@@ -45,10 +47,11 @@ h1 { font-size: 1.6em; } h2 { font-size: 1.25em; } h3 { font-size: 1.05em; }
 .stack > * + * { margin-top: 10px; }
 .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
-button, .btn { font: inherit; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 10px 16px; border-radius: 10px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+button, .btn { font: inherit; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 10px 16px; border-radius: 12px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
 button:hover, .btn:hover { border-color: var(--brand); }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
-.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); font-weight: 600; }
+.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); font-weight: 700; }
+.primary:hover { filter: brightness(1.08); }
 .danger { background: var(--urgent); color: #fff; border-color: var(--urgent); font-weight: 600; }
 .big { padding: 16px 22px; font-size: 1.1em; border-radius: 14px; }
 button:disabled { opacity: .55; cursor: not-allowed; }
