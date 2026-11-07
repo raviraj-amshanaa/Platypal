@@ -14,7 +14,7 @@ const LANG_NAMES = {
 const langName = (code) => LANG_NAMES[code] || code;
 
 // If the AI takes longer than this, give up and use the sample result so the demo never hangs
-const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS) || 25000;
+const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS) || 60000;
 
 function mode() {
   return hasKey ? PROVIDER : 'mock';
@@ -34,6 +34,8 @@ async function callModel({ system, text, image }) {
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
         ...(base.includes('api.openai.com') ? { response_format: { type: 'json_object' } } : {}),
+        // Gemini "thinks" before answering; low effort makes it much faster for this task
+        ...(base.includes('generativelanguage') ? { reasoning_effort: process.env.AI_REASONING || 'low' } : {}),
         messages: [{ role: 'system', content: system }, { role: 'user', content }]
       })
     });
