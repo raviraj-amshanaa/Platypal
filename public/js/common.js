@@ -8,6 +8,8 @@ const LANGS = {
   'hi-IN': 'हिन्दी Hindi',
   'pa-IN': 'ਪੰਜਾਬੀ Punjabi',
   'es-ES': 'Español Spanish',
+  'fr-FR': 'Français French',
+  'ta-IN': 'தமிழ் Tamil',
   'ar-SA': 'العربية Arabic',
   'tl-PH': 'Tagalog'
 };
@@ -111,7 +113,9 @@ function toast(msg) {
 
 // Client-side emergency check so the 911 banner shows instantly, before any network call
 const EMERGENCY_WORDS = ['chest pain', "can't breathe", 'cannot breathe', 'not breathing', 'unconscious', 'passed out', 'heavy bleeding', 'stroke',
-  '胸痛', '胸口痛', '呼吸困难', '喘不过气', '唞唔到氣', '昏迷', 'सीने में दर्द', 'सांस नहीं', 'dolor de pecho', 'no puedo respirar'];
+  '胸痛', '胸口痛', '呼吸困难', '喘不过气', '唞唔到氣', '昏迷', 'सीने में दर्द', 'सांस नहीं', 'dolor de pecho', 'no puedo respirar',
+  'douleur à la poitrine', 'douleur thoracique', 'je ne peux pas respirer', 'ne respire pas', 'inconscient',
+  'நெஞ்சு வலி', 'மூச்சு விட முடியவில்லை', 'மூச்சுத் திணறல்'];
 function looksLikeEmergency(s = '') {
   const t = s.toLowerCase();
   return EMERGENCY_WORDS.some((w) => t.includes(w));
