@@ -13,6 +13,9 @@ const LANG_NAMES = {
 };
 const langName = (code) => LANG_NAMES[code] || code;
 
+// If the AI takes longer than this, give up and use the sample result so the demo never hangs
+const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS) || 25000;
+
 function mode() {
   return hasKey ? PROVIDER : 'mock';
 }
@@ -26,6 +29,7 @@ async function callModel({ system, text, image }) {
     const base = process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1';
     const r = await fetch(`${base}/chat/completions`, {
       method: 'POST',
+      signal: AbortSignal.timeout(AI_TIMEOUT_MS),
       headers: { Authorization: `Bearer ${OPENAI_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
@@ -43,6 +47,7 @@ async function callModel({ system, text, image }) {
   content.push({ type: 'text', text });
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
+    signal: AbortSignal.timeout(AI_TIMEOUT_MS),
     headers: {
       'x-api-key': ANTHROPIC_KEY,
       'anthropic-version': '2023-06-01',
