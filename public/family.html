@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Platypal – Family</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">Platypal</a>
+    <span class="pill">Family</span>
+    <span class="spacer"></span>
+    <select id="read-lang" style="width:auto" aria-label="Language I read"></select>
+    <button id="toggle-large" aria-label="Toggle large text">A+</button>
+    <button id="toggle-contrast" aria-label="Toggle high contrast">◐</button>
+  </header>
+
+  <main class="wrap narrow stack">
+    <div id="error" class="card hidden"></div>
+    <div id="content" class="hidden stack">
+      <div class="card">
+        <h1 id="title"></h1>
+        <p class="muted small" id="subtitle"></p>
+      </div>
+
+      <div id="alerts-card" class="card hidden">
+        <h2>Alerts</h2>
+        <div id="alerts"></div>
+      </div>
+
+      <div id="plan-card" class="card hidden">
+        <h2>Care plan</h2>
+        <div id="plan"></div>
+      </div>
+
+      <div id="report-card" class="card stack hidden">
+        <h2>Report a problem for them</h2>
+        <div id="emergency" class="banner-911 hidden" role="alert">This could be an emergency. <a href="tel:911">Call 911 now.</a></div>
+        <button class="danger big" id="trouble-open" style="width:100%;justify-content:center">They're having trouble</button>
+        <div id="trouble-form" class="hidden stack">
+          <button class="mic" id="mic">🎤 Tap to speak</button>
+          <p class="small muted" id="mic-hint">Speak in any language. Tap again to stop.</p>
+          <textarea id="transcript" placeholder="Describe what's happening"></textarea>
+          <div><label for="photo">Add a photo (optional)</label><input id="photo" type="file" accept="image/*" capture="environment" /></div>
+          <img id="photo-preview" class="thumb hidden" alt="Photo" />
+          <button class="primary big" id="send-report">Send to my care team</button>
+        </div>
+      </div>
+
+      <div id="reports-card" class="card hidden">
+        <div id="reports"></div>
+      </div>
+
+      <p class="muted small">You see only what they chose to share. They can remove your access anytime.</p>
+    </div>
+  </main>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/trouble.js"></script>
+  <script src="/js/family.js"></script>
+</body>
+</html>

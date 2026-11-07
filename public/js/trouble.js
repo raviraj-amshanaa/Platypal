@@ -1,0 +1,76 @@
+// Smart Trouble Report form, shared by the patient and family pages.
+// Expects elements: #trouble-open #trouble-form #mic #mic-hint #transcript #photo #photo-preview #send-report #emergency
+function setupTroubleForm({ patientId, lang, from, fromName, familyCode, onSent }) {
+  const $ = (id) => document.getElementById(id);
+  let photo = null;
+  let listening = false;
+
+  $('trouble-open').onclick = () => {
+    $('trouble-form').classList.toggle('hidden');
+    $('trouble-open').classList.toggle('hidden');
+  };
+
+  const checkEmergency = () => $('emergency').classList.toggle('hidden', !looksLikeEmergency($('transcript').value));
+  $('transcript').oninput = checkEmergency;
+
+  const rec = createRecognizer(lang, (text) => { $('transcript').value = text; checkEmergency(); }, (on) => {
+    listening = on;
+    $('mic').classList.toggle('listening', on);
+    $('mic').textContent = on ? '⏹ Listening… tap to stop' : '🎤 Tap to speak';
+  });
+  if (!rec) {
+    $('mic').disabled = true;
+    $('mic-hint').textContent = 'Voice input needs Chrome or Edge. You can type instead.';
+  }
+  $('mic').onclick = () => (listening ? rec.stop() : rec.start());
+
+  $('photo').onchange = async (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    photo = await fileToDataUrl(f, 1200);
+    $('photo-preview').src = photo;
+    $('photo-preview').classList.remove('hidden');
+  };
+
+  $('send-report').onclick = async (e) => {
+    const words = $('transcript').value.trim();
+    if (!words && !photo) return toast('Speak, type or add a photo first');
+    if (listening) rec.stop();
+    e.target.disabled = true;
+    e.target.textContent = 'Sending…';
+    try {
+      const { report } = await api(`/api/patients/${patientId}/reports`, {
+        method: 'POST',
+        body: { from, fromName, familyCode, transcript: words, photoDataUrl: photo, language: lang }
+      });
+      if (report.emergency) $('emergency').classList.remove('hidden');
+      $('transcript').value = '';
+      $('photo').value = '';
+      $('photo-preview').classList.add('hidden');
+      photo = null;
+      $('trouble-form').classList.add('hidden');
+      $('trouble-open').classList.remove('hidden');
+      toast('Sent. Your care team will see it right away.');
+      onSent && onSent(report);
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      e.target.disabled = false;
+      e.target.textContent = 'Send to my care team';
+    }
+  };
+}
+
+function renderReportsList(reports, { english } = {}) {
+  if (!reports.length) return '';
+  return '<h3 style="margin-top:12px">Your messages</h3>' + [...reports]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .map((r) => `
+      <div class="card" style="box-shadow:none">
+        <div class="small muted">${timeAgo(r.createdAt)} · from ${esc(r.fromName)}</div>
+        <div>${esc(r.transcript || r.text || (r.hasPhoto ? 'Photo sent' : ''))}</div>
+        ${r.staffResponse
+          ? `<div class="notice" style="margin-top:8px">💬 <strong>${esc(r.staffResponse)}</strong><div class="small muted">${esc(r.respondedBy || 'Care team')}, ${timeAgo(r.respondedAt)}</div></div>`
+          : `<div class="small muted" style="margin-top:6px">Waiting for your care team…</div>`}
+      </div>`).join('');
+}

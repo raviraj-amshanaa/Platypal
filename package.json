@@ -1,0 +1,15 @@
+{
+  "name": "platypal",
+  "version": "0.1.0",
+  "description": "Platypal (DischargeBuddy): nurse-approved discharge instructions, AI-triaged trouble reports, and consent-based family access.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "reset": "node -e \"require('fs').rmSync('data/db.json',{force:true});console.log('Data reset. Seed data loads on next start.')\""
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}

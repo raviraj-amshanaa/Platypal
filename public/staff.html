@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Platypal – Care Team</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">Platypal</a>
+    <span class="pill">Care team</span>
+    <span class="spacer"></span>
+    <label class="row small" style="font-weight:400">Signed in as
+      <input id="nurse-name" value="Nurse Kim" style="width:150px" aria-label="Nurse name" />
+    </label>
+    <span id="ai-mode" class="pill"></span>
+  </header>
+
+  <main class="wrap grid cols-side">
+    <!-- LEFT: patients sorted by risk -->
+    <section aria-label="Patients">
+      <div class="row" style="justify-content:space-between;margin-bottom:10px">
+        <h2 style="margin:0">Patients</h2>
+        <button class="primary" id="new-btn">+ New discharge</button>
+      </div>
+      <div id="patient-list"></div>
+    </section>
+
+    <!-- RIGHT: detail panel -->
+    <section id="panel" aria-live="polite">
+      <div class="card muted">Select a patient, or start a new discharge.</div>
+    </section>
+  </main>
+
+  <template id="new-discharge-tpl">
+    <div class="card stack">
+      <h2>New discharge</h2>
+      <p class="muted">Photograph the discharge papers. AI drafts the care plan; you review and approve it before the patient sees anything.</p>
+      <div><label for="nd-name">Patient name</label><input id="nd-name" placeholder="e.g. Raj Patel" /></div>
+      <div><label for="nd-proc">Reason for stay</label><input id="nd-proc" placeholder="e.g. Knee replacement" /></div>
+      <div><label for="nd-lang">Patient's language</label><select id="nd-lang"></select></div>
+      <div><label for="nd-photo">Photo of discharge papers</label><input id="nd-photo" type="file" accept="image/*" capture="environment" /></div>
+      <img id="nd-preview" class="source-img hidden" alt="Preview of discharge papers" />
+      <div class="row"><button class="primary big" id="nd-submit">Create AI draft</button><span id="nd-status" class="muted"></span></div>
+    </div>
+  </template>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/staff.js"></script>
+</body>
+</html>

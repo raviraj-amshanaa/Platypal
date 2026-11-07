@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Platypal – My care</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body class="large">
+  <header class="topbar">
+    <a class="brand" href="/">Platypal</a>
+    <span class="spacer"></span>
+    <button id="lang-toggle" aria-label="Switch language"></button>
+    <button id="toggle-large" aria-label="Toggle large text">A+</button>
+    <button id="toggle-contrast" aria-label="Toggle high contrast">◐</button>
+  </header>
+
+  <main class="wrap narrow stack">
+    <h1 id="hello"></h1>
+
+    <!-- shown until a nurse approves -->
+    <div id="waiting" class="card hidden">
+      <h2>Your care team is preparing your instructions</h2>
+      <p class="muted">A nurse is checking them now. This page will update by itself.</p>
+    </div>
+
+    <div id="plan" class="hidden stack">
+      <div class="card stack">
+        <div class="row" style="justify-content:space-between">
+          <h2 style="margin:0">What you need to know</h2>
+          <button id="read-expl" aria-label="Read aloud">🔊 Read aloud</button>
+        </div>
+        <p id="explanation"></p>
+        <p class="small muted" id="approved-by"></p>
+      </div>
+
+      <div class="card">
+        <h2>Today</h2>
+        <div id="checklist"></div>
+      </div>
+
+      <div class="card">
+        <h2>Medicines</h2>
+        <div id="meds"></div>
+      </div>
+
+      <div class="card">
+        <h2>Appointments</h2>
+        <div id="appts"></div>
+      </div>
+    </div>
+
+    <!-- Smart Trouble Report -->
+    <div class="card stack">
+      <h2>Something wrong?</h2>
+      <div id="emergency" class="banner-911 hidden" role="alert">
+        This could be an emergency. <a href="tel:911">Call 911 now.</a>
+      </div>
+      <button class="danger big" id="trouble-open" style="width:100%;justify-content:center">I'm having trouble</button>
+      <div id="trouble-form" class="hidden stack">
+        <button class="mic" id="mic">🎤 Tap to speak</button>
+        <p class="small muted" id="mic-hint">Speak in your own language. Tap again to stop.</p>
+        <textarea id="transcript" placeholder="Your words appear here. You can also type."></textarea>
+        <div><label for="photo">Add a photo (optional)</label><input id="photo" type="file" accept="image/*" capture="environment" /></div>
+        <img id="photo-preview" class="thumb hidden" alt="Your photo" />
+        <button class="primary big" id="send-report">Send to my care team</button>
+      </div>
+      <div id="my-reports"></div>
+    </div>
+
+    <!-- Family Circle -->
+    <div class="card stack">
+      <h2>Family Circle</h2>
+      <p class="muted small">Invite someone to help. You choose what they can see, and you can remove them anytime.</p>
+      <div id="family-list"></div>
+      <details>
+        <summary><strong>Invite a family member</strong></summary>
+        <div class="stack" style="margin-top:10px">
+          <input id="fam-name" placeholder="Name" aria-label="Family member name" />
+          <input id="fam-rel" placeholder="Relationship (e.g. Daughter)" aria-label="Relationship" />
+          <fieldset class="stack" style="border:1px solid var(--border);border-radius:10px">
+            <legend>They can:</legend>
+            <label style="font-weight:400"><input type="checkbox" id="perm-checklist" checked style="width:auto" /> See my checklist and medicines</label>
+            <label style="font-weight:400"><input type="checkbox" id="perm-reports" checked style="width:auto" /> See my trouble reports and replies</label>
+            <label style="font-weight:400"><input type="checkbox" id="perm-alerts" checked style="width:auto" /> Get alerts when I need help</label>
+            <label style="font-weight:400"><input type="checkbox" id="perm-canReport" style="width:auto" /> Send a trouble report for me</label>
+          </fieldset>
+          <button class="primary" id="invite-btn">Create invite code</button>
+          <div id="invite-result"></div>
+        </div>
+      </details>
+    </div>
+  </main>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/trouble.js"></script>
+  <script src="/js/patient.js"></script>
+</body>
+</html>
