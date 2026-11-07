@@ -13,7 +13,7 @@
   <header class="topbar">
     <a class="brand" href="/">Platypal</a>
     <span class="spacer"></span>
-    <button id="lang-toggle" aria-label="Switch language"></button>
+    <select id="lang-select" aria-label="Language" style="width:auto"></select>
     <button id="toggle-large" aria-label="Toggle large text">A+</button>
     <button id="toggle-contrast" aria-label="Toggle high contrast">◐</button>
   </header>
@@ -34,6 +34,7 @@
           <button id="read-expl" aria-label="Read aloud">🔊 Read aloud</button>
         </div>
         <p id="explanation"></p>
+        <p class="small muted hidden" id="translate-note" role="status"></p>
         <p class="small muted" id="approved-by"></p>
       </div>
 

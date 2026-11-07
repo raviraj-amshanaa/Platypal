@@ -1,10 +1,50 @@
 // Patient view. Person C owns this file.
 const patientId = qs('id');
 let data = null;
-let showEnglish = false;
+let currentLang = null; // language the patient is reading in; starts as their own language
+const translateState = {}; // language -> 'loading' | 'unavailable'
 
 const $ = (id) => document.getElementById(id);
-const t = (en, translated) => (showEnglish || !translated ? en : translated);
+
+// The text to show for one language, or null if it still has to be fetched.
+function langView(plan, lang) {
+  const pick = (list, en, tr) => list.map((x, i) => (tr && tr[i]) || x[en]);
+  if (lang === 'en-US') {
+    return { explanation: plan.explanation_en, meds: pick(plan.medications, 'instructions_en'), appts: pick(plan.appointments, 'what_en'), tasks: pick(plan.checklist, 'task_en') };
+  }
+  if (lang === data.language) { // translated by the server when the nurse approved the plan
+    return {
+      explanation: plan.explanation_translated || plan.explanation_en,
+      meds: plan.medications.map((m) => m.instructions_translated || m.instructions_en),
+      appts: plan.appointments.map((a) => a.what_translated || a.what_en),
+      tasks: plan.checklist.map((c) => c.task_translated || c.task_en)
+    };
+  }
+  const tl = plan.translations && plan.translations[lang]; // translated on demand and cached
+  if (!tl) return null;
+  return {
+    explanation: tl.explanation || plan.explanation_en,
+    meds: pick(plan.medications, 'instructions_en', tl.medications),
+    appts: pick(plan.appointments, 'what_en', tl.appointments),
+    tasks: pick(plan.checklist, 'task_en', tl.checklist)
+  };
+}
+
+async function fetchTranslation(lang) {
+  if (translateState[lang]) return; // already loading, or failed (cleared when the patient picks it again)
+  translateState[lang] = 'loading';
+  try {
+    const r = await api(`/api/patients/${patientId}/translate`, { method: 'POST', body: { language: lang } });
+    if (r.mock) translateState[lang] = 'unavailable';
+    else {
+      data.plan.translations = { ...(data.plan.translations || {}), [lang]: r.translation };
+      delete translateState[lang];
+    }
+  } catch {
+    translateState[lang] = 'unavailable';
+  }
+  if (currentLang === lang) render();
+}
 
 async function load() {
   if (!patientId) { document.body.innerHTML = '<main class="wrap"><p>Missing patient link. Go back to the <a href="/">home page</a>.</p></main>'; return; }
@@ -13,10 +53,13 @@ async function load() {
 }
 
 function render() {
-  const lang = showEnglish ? 'en-US' : data.language;
+  if (!currentLang) currentLang = 'en-US';
+  const sel = $('lang-select');
+  if (!sel.options.length) {
+    sel.innerHTML = Object.entries(LANGS).map(([code, label]) => `<option value="${esc(code)}">${esc(label)}</option>`).join('');
+  }
+  sel.value = currentLang;
   $('hello').textContent = `Hello, ${data.name.split(' ')[0]}`;
-  $('lang-toggle').textContent = showEnglish ? (LANGS[data.language] || data.language) : 'English';
-  $('lang-toggle').classList.toggle('hidden', data.language === 'en-US');
 
   const approved = data.planStatus === 'approved';
   $('waiting').classList.toggle('hidden', approved);
@@ -24,7 +67,23 @@ function render() {
 
   if (approved) {
     const plan = data.plan;
-    $('explanation').textContent = t(plan.explanation_en, plan.explanation_translated);
+    let lang = currentLang;
+    let view = langView(plan, lang);
+    let note = '';
+    if (!view) {
+      // Not translated yet: show English while it loads (or if it cannot be translated right now)
+      fetchTranslation(lang);
+      const failed = translateState[lang] === 'unavailable';
+      note = failed ? "We couldn't translate this right now, so it is shown in English." : 'Translating…';
+      lang = 'en-US';
+      view = langView(plan, lang);
+    } else if (lang !== data.language && lang !== 'en-US') {
+      note = `Translated automatically from the plan ${plan.approvedBy} approved.`;
+    }
+    $('translate-note').textContent = note;
+    $('translate-note').classList.toggle('hidden', !note);
+
+    $('explanation').textContent = view.explanation;
     $('explanation').lang = lang;
     // Monitoring status: still being followed, or ended (patient can always still reach out)
     const m = data.monitoring;
@@ -35,21 +94,21 @@ function render() {
         : m?.status === 'active' ? ` · Your care team is following your recovery until ${endDate}` : '');
     $('read-expl').onclick = () => speak($('explanation').textContent, lang);
 
-    $('checklist').innerHTML = plan.checklist.map((c) => {
+    $('checklist').innerHTML = plan.checklist.map((c, i) => {
       const done = (c.log || []).includes(data.today);
       return `<button class="check-item ${done ? 'done' : ''}" data-id="${esc(c.id)}" aria-pressed="${done}">
         <span class="box">${done ? '✓' : ''}</span>
-        <span class="label" lang="${lang}">${esc(t(c.task_en, c.task_translated))}</span>
+        <span class="label" lang="${lang}">${esc(view.tasks[i])}</span>
       </button>`;
     }).join('');
     document.querySelectorAll('.check-item').forEach((b) => (b.onclick = () => toggle(b.dataset.id)));
 
-    $('meds').innerHTML = plan.medications.map((m) => `
+    $('meds').innerHTML = plan.medications.map((m, i) => `
       <div class="row" style="justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-        <div><strong>${esc(m.name)}</strong> ${esc(m.dose)}<br><span class="muted">${esc(m.time)}</span><br><span lang="${lang}">${esc(t(m.instructions_en, m.instructions_translated))}</span></div>
-        <button aria-label="Read aloud" data-say="${esc(`${m.name}. ${m.time}. ${t(m.instructions_en, m.instructions_translated)}`)}">🔊</button>
+        <div><strong>${esc(m.name)}</strong> ${esc(m.dose)}<br><span class="muted">${esc(m.time)}</span><br><span lang="${lang}">${esc(view.meds[i])}</span></div>
+        <button aria-label="Read aloud" data-say="${esc(`${m.name}. ${m.time}. ${view.meds[i]}`)}">🔊</button>
       </div>`).join('');
-    $('appts').innerHTML = plan.appointments.map((a) => appointmentHtml(a, t(a.what_en, a.what_translated), lang)).join('') || '<p class="muted">None</p>';
+    $('appts').innerHTML = plan.appointments.map((a, i) => appointmentHtml(a, view.appts[i], lang)).join('') || '<p class="muted">None</p>';
     document.querySelectorAll('[data-say]').forEach((b) => (b.onclick = () => speak(b.dataset.say, lang)));
   }
 
@@ -87,7 +146,11 @@ $('invite-btn').onclick = async () => {
   await load();
 };
 
-$('lang-toggle').onclick = () => { showEnglish = !showEnglish; render(); };
+$('lang-select').onchange = (e) => {
+  currentLang = e.target.value;
+  if (translateState[currentLang] === 'unavailable') delete translateState[currentLang]; // try again
+  render();
+};
 
 initA11yToggles();
 load().then(() => {

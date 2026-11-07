@@ -170,6 +170,25 @@ app.get('/api/patient-view/:id', (req, res) => {
   res.json({ ...patientView(p), monitoring: monitoringInfo(p.plan), today: today() });
 });
 
+// Patient picks another language. Translates the nurse-approved plan on demand and caches it on the plan.
+// Re-approving an edited plan builds a new plan object, so old cached translations go away by themselves.
+app.post('/api/patients/:id/translate', wrap(async (req, res) => {
+  const p = findPatient(req, res);
+  if (!p) return;
+  if (p.plan?.status !== 'approved') return res.status(400).json({ error: 'No approved plan yet' });
+  const { language } = req.body;
+  if (!ai.isSupportedLanguage(language)) return res.status(400).json({ error: 'Unsupported language' });
+  p.plan.translations = p.plan.translations || {};
+  let translation = p.plan.translations[language];
+  if (!translation) {
+    translation = await ai.translateContent(p.plan, language);
+    if (translation._mock) return res.json({ language, translation, mock: true }); // not a real translation: do not save it
+    p.plan.translations[language] = translation;
+    store.save();
+  }
+  res.json({ language, translation });
+}));
+
 // Toggle today's check-off for a checklist item
 app.post('/api/patients/:id/checklist/:itemId', (req, res) => {
   const p = findPatient(req, res);

@@ -8,10 +8,15 @@ const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const hasKey = PROVIDER === 'openai' ? !!OPENAI_KEY : !!ANTHROPIC_KEY;
 
 const LANG_NAMES = {
-  'en-US': 'English', 'zh-CN': 'Simplified Chinese (Mandarin)', 'zh-HK': 'Traditional Chinese (Cantonese)',
-  'hi-IN': 'Hindi', 'pa-IN': 'Punjabi', 'es-ES': 'Spanish', 'ar-SA': 'Arabic', 'tl-PH': 'Tagalog'
+  'en-US': 'English', 'zh-CN': 'Simplified Chinese (Mandarin)',
+  'zh-HK': 'Traditional Chinese (Cantonese, written the way Hong Kong speakers say it, not Mandarin phrasing)',
+  'hi-IN': 'Hindi', 'pa-IN': 'Punjabi', 'es-ES': 'Spanish', 'fr-FR': 'French', 'ta-IN': 'Tamil (Tamil script)',
+  'ar-SA': 'Arabic', 'tl-PH': 'Tagalog'
 };
 const langName = (code) => LANG_NAMES[code] || code;
+const isSupportedLanguage = (code) => Object.prototype.hasOwnProperty.call(LANG_NAMES, code);
+const translateSystem = (language) =>
+  `Translate patient care instructions into ${langName(language)}. Keep the meaning exact, use simple everyday words, keep medication names and doses unchanged. Return ONLY JSON with the same keys and array lengths as the input.`;
 
 // If the AI takes longer than this, give up and use the sample result so the demo never hangs
 const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS) || 60000;
@@ -122,7 +127,7 @@ async function translatePlan(plan, language) {
   if (!hasKey) return mockTranslate(plan, language);
   try {
     const out = await callModel({
-      system: `Translate patient care instructions into ${langName(language)}. Keep the meaning exact, use simple everyday words, keep medication names and doses unchanged. Return ONLY JSON with the same keys and array lengths as the input.`,
+      system: translateSystem(language),
       text: JSON.stringify(payload)
     });
     plan.explanation_translated = out.explanation;
@@ -133,6 +138,32 @@ async function translatePlan(plan, language) {
   } catch (e) {
     console.error('[ai] translatePlan failed, using mock:', e.message);
     return mockTranslate(plan, language);
+  }
+}
+
+// ---------- 2b. Translate an approved plan into ANY supported language, on demand ----------
+// Used by the patient's language picker. Returns the translated text only and never changes the plan.
+// A result with _mock: true is not a real translation (no API key, or the call failed), so callers must not cache it.
+async function translateContent(plan, language) {
+  const payload = {
+    explanation: plan.explanation_en,
+    medications: plan.medications.map((m) => m.instructions_en),
+    appointments: plan.appointments.map((a) => a.what_en),
+    checklist: plan.checklist.map((c) => c.task_en)
+  };
+  if (language === 'en-US') return payload;
+  if (!hasKey) return { ...payload, _mock: true };
+  try {
+    const out = await callModel({ system: translateSystem(language), text: JSON.stringify(payload) });
+    return {
+      explanation: out.explanation || payload.explanation,
+      medications: payload.medications.map((en, i) => out.medications?.[i] || en),
+      appointments: payload.appointments.map((en, i) => out.appointments?.[i] || en),
+      checklist: payload.checklist.map((en, i) => out.checklist?.[i] || en)
+    };
+  } catch (e) {
+    console.error('[ai] translateContent failed:', e.message);
+    return { ...payload, _mock: true };
   }
 }
 
@@ -172,7 +203,9 @@ const EMERGENCY_WORDS = [
   'chest pain', "can't breathe", 'cannot breathe', 'not breathing', 'unconscious', 'passed out', 'heavy bleeding', 'stroke',
   '胸痛', '胸口痛', '呼吸困难', '喘不过气', '唞唔到氣', '昏迷',
   'सीने में दर्द', 'सांस नहीं',
-  'dolor de pecho', 'no puedo respirar'
+  'dolor de pecho', 'no puedo respirar',
+  'douleur à la poitrine', 'douleur thoracique', 'je ne peux pas respirer', 'ne respire pas', 'inconscient',
+  'நெஞ்சு வலி', 'மூச்சு விட முடியவில்லை', 'மூச்சுத் திணறல்'
 ];
 function isEmergency(s = '') {
   const t = s.toLowerCase();
@@ -217,7 +250,7 @@ function mockTranslate(plan, language) {
 
 function mockTriage({ words, hasPhoto, patient }) {
   const t = (words || '').toLowerCase();
-  const soonWords = ['pain', 'red', 'swell', 'fever', 'dizzy', 'bleed', 'pus', '痛', '红', '肿', '头晕', '发烧', 'दर्द', 'लाल', 'dolor'];
+  const soonWords = ['pain', 'red', 'swell', 'fever', 'dizzy', 'bleed', 'pus', '痛', '红', '肿', '头晕', '发烧', 'दर्द', 'लाल', 'dolor', 'douleur', 'fièvre', 'வலி', 'காய்ச்சல்'];
   let severity = 'routine';
   if (isEmergency(t)) severity = 'urgent';
   else if (soonWords.some((w) => t.includes(w)) || hasPhoto) severity = 'soon';
@@ -235,4 +268,4 @@ function daysSince(iso) {
   return Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
 }
 
-module.exports = { draftPlan, translatePlan, triageReport, isEmergency, mode, daysSince };
+module.exports = { draftPlan, translatePlan, translateContent, triageReport, isEmergency, isSupportedLanguage, mode, daysSince };
