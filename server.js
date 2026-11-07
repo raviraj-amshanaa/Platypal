@@ -109,12 +109,15 @@ app.post('/api/patients/:id/reports/:rid/respond', (req, res) => {
   if (!p) return;
   const r = p.reports.find((x) => x.id === req.params.rid);
   if (!r) return res.status(404).json({ error: 'Report not found' });
-  const { response, severity, nurseName } = req.body;
+  const { response, severity, nurseName, note } = req.body;
   if (severity) r.severity = severity;
   if (response) {
     r.staffResponse = response;
     r.respondedBy = nurseName || 'Nurse';
     r.respondedAt = now();
+  }
+  if (typeof note === 'string' && note.trim()) {
+       r.staffNote = note.trim();
   }
   store.save();
   res.json({ report: r });

@@ -240,7 +240,10 @@ function renderDetail() {
   document.getElementById('redraft').onclick = () => { current.plan.status = 'draft'; mode = 'review'; render(); };
 
   panel.querySelectorAll('[data-respond]').forEach((btn) => {
-    btn.onclick = () => respond(btn.dataset.rid, { response: btn.dataset.respond });
+    btn.onclick = () => {
+      const noteBox = panel.querySelector(`[data-note="${btn.dataset.rid}"]`);
+      respond(btn.dataset.rid, { response: btn.dataset.respond, note: noteBox ? noteBox.value : '' });
+    };
   });
   panel.querySelectorAll('select[data-override]').forEach((sel) => {
     sel.onchange = () => respond(sel.dataset.rid, { severity: sel.value });
@@ -273,8 +276,12 @@ function reportCard(r) {
       ${r.photoDescription ? `<p class="small"><strong>Photo:</strong> ${esc(r.photoDescription)}</p>` : ''}
       ${r.photo ? `<img class="thumb" src="${r.photo}" alt="Photo sent by ${esc(r.fromName)}" />` : ''}
       ${r.staffResponse
-        ? `<div class="notice small">✓ ${esc(r.staffResponse)} – ${esc(r.respondedBy || '')} ${timeAgo(r.respondedAt)}</div>`
-        : `<div class="row">
+        ? `<div class="notice small">✓ ${esc(r.staffResponse)} – ${esc(r.respondedBy || '')} ${timeAgo(r.respondedAt)}
+             ${r.staffNote ? `<div style="margin-top:6px"><strong>Note:</strong> ${esc(r.staffNote)}</div>` : ''}
+           </div>`
+        : `<label class="small" for="note-${esc(r.id)}">Note for the patient (optional)</label>
+           <textarea id="note-${esc(r.id)}" class="staff-note" data-note="${esc(r.id)}" placeholder="e.g. Keep your leg raised. I'll call you within the hour."></textarea>
+           <div class="row" style="margin-top:8px">
              <button data-respond="Reviewed – no action needed" data-rid="${esc(r.id)}">Reviewed</button>
              <button class="primary" data-respond="A nurse will call you shortly" data-rid="${esc(r.id)}">Calling patient</button>
              <button class="danger" data-respond="Please go to the emergency room now" data-rid="${esc(r.id)}">Advise ER visit</button>
