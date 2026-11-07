@@ -246,6 +246,7 @@ function renderDetail() {
         <h2 style="margin:0">${esc(p.name)}</h2>${sevBadge(p.top)}
       </div>
       <p class="muted small">${esc(p.procedure)} · ${esc(LANGS[p.language] || p.language)} · plan approved by ${esc(plan.approvedBy)} ${timeAgo(plan.approvedAt)}</p>
+      <p><strong>${sinceDischarge(p.dischargedAt)}</strong></p>
       ${p.alerts.length ? `<ul>${p.alerts.map((a) => `<li>${sevBadge(a.level)} ${esc(a.text)}</li>`).join('')}</ul>` : ''}
       <div class="row small"><span class="muted">Patient link:</span> <a href="${patientLink}" target="_blank">${esc(patientLink)}</a></div>
     </div>
@@ -260,7 +261,7 @@ function renderDetail() {
         <h3 style="margin:0">Checklist progress</h3>
         <span class="muted small">Click an item for details</span>
       </div>
-      ${renderStaffChecklist(plan)}
+      ${renderStaffChecklist(plan, p.dischargedAt)}
     </div>
 
     <div class="card">
@@ -333,6 +334,15 @@ function reportCard(r) {
     </div>`;
 }
 
+// "Day 4 since discharge (Tue, Nov 3)"
+function sinceDischarge(iso) {
+  if (!iso) return 'Discharge date unknown';
+  const start = new Date(iso);
+  const days = Math.floor((new Date().setHours(0, 0, 0, 0) - new Date(iso).setHours(0, 0, 0, 0)) / 86400000);
+  const date = start.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  return days === 0 ? `Discharged today (${date})` : `Day ${days} since discharge (${date})`;
+}
+
 // ---------- checklist progress (staff detail) ----------
 const dayKey = (daysBack) => {
   const d = new Date();
@@ -340,7 +350,7 @@ const dayKey = (daysBack) => {
   return d.toISOString().slice(0, 10);
 };
 
-function renderStaffChecklist(plan) {
+function renderStaffChecklist(plan, dischargedAt) {
   if (!plan.checklist.length) return '<p class="muted">No checklist items.</p>';
   const start = (plan.approvedAt || '').slice(0, 10);
   const today = dayKey(0);
@@ -353,7 +363,7 @@ function renderStaffChecklist(plan) {
     const days = [];
     for (let i = 6; i >= 0; i--) {
       const key = dayKey(i);
-      const label = new Date(key + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short' });
+      const label = new Date(key + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
       let state = 'none';
       if (key >= start) state = log.includes(key) ? 'done' : i === 0 ? 'pending' : 'missed';
       days.push({ key, label, state });
@@ -382,13 +392,13 @@ function renderStaffChecklist(plan) {
     };
     const symbol = { done: '✓', missed: '✗', pending: '…', none: '·' };
     const strip = days.map((d) => `
-      <div style="text-align:center;width:38px">
+      <div style="text-align:center;width:52px">
         <div class="small muted">${d.label}</div>
         <div title="${d.key}: ${d.state}" style="height:30px;border-radius:8px;display:grid;place-items:center;font-weight:700;${style[d.state]}">${symbol[d.state]}</div>
       </div>`).join('');
 
     return `
-      <details style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-top:10px">
+      <details open style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-top:10px">
         <summary style="cursor:pointer;list-style:none">
           <div class="row" style="justify-content:space-between">
             <div class="row">
@@ -400,6 +410,7 @@ function renderStaffChecklist(plan) {
           <div class="row" style="gap:6px;margin-top:10px">${strip}</div>
         </summary>
         <div class="small" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div><strong>Since discharge:</strong> ${sinceDischarge(dischargedAt)}</div>
           <div><strong>Type:</strong> ${c.type === 'med' ? 'Daily medicine' : 'Daily task'}</div>
           <div><strong>Last 7 days:</strong> done ${doneDays} of ${activeDays} day${activeDays === 1 ? '' : 's'}${missedInRow ? `, missed the last ${missedInRow} in a row` : ''}</div>
           <div><strong>Last done:</strong> ${log.length ? new Date([...log].sort().pop() + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }) : 'Never'}</div>
