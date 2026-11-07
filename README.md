@@ -14,9 +14,9 @@ Patients go home from hospital confused about their instructions, and staff don'
 | Care team | Review side by side with the original: edit, remove, add, then **Approve & send** (translated on approval) |
 | Care team | Dashboard sorted by risk, with alerts: urgent reports, missed meds 2 days in a row, no activity for 48 h |
 | Care team | Trouble reports with AI severity, summary and reason; override severity; reply (Reviewed / Calling / Advise ER) |
-| Patient | Plain-language plan in their language, read aloud, large text, high contrast |
+| Patient | Plain-language care plan in their selected language (English + 9 translation languages), with read-aloud functionality, large text and high contrast |
 | Patient | One-tap daily checklist |
-| Patient | **I'm having trouble**: speak in any language, add a photo → AI triage → staff queue. Emergency words show **Call 911** instantly |
+| Patient | **I'm having trouble**: Describe the issue by speaking in English or uploading a photo → AI triage → staff queue. Emergency words show **Call 911** |
 | Patient | **Family Circle**: invite with a 6-digit code, choose exactly what they can see, remove anytime |
 | Family | See only what was shared, get alerts, send a report on the patient's behalf (if allowed) |
 
