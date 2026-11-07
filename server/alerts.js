@@ -41,27 +41,27 @@ function computeAlerts(patient) {
   const open = (patient.reports || []).filter((r) => !r.staffResponse);
 
   for (const r of open) {
-    if (r.emergency) alerts.push({ level: 'urgent', text: 'Emergency words in a report' });
-    else if (r.severity === 'urgent') alerts.push({ level: 'urgent', text: 'Urgent trouble report' });
-    else if (r.severity === 'soon') alerts.push({ level: 'soon', text: 'Trouble report needs a call today' });
-    else alerts.push({ level: 'routine', text: 'New routine report' });
-    if (r.afterMonitoring) alerts.push({ level: 'soon', text: 'Returned after monitoring ended' });
+    if (r.emergency) alerts.push({ level: 'urgent', code: 'emergency', text: 'Emergency words in a report' });
+    else if (r.severity === 'urgent') alerts.push({ level: 'urgent', code: 'report_urgent', text: 'Urgent trouble report' });
+    else if (r.severity === 'soon') alerts.push({ level: 'soon', code: 'report_soon', text: 'Trouble report needs a call today' });
+    else alerts.push({ level: 'routine', code: 'report_routine', text: 'New routine report' });
+    if (r.afterMonitoring) alerts.push({ level: 'soon', code: 'returned', text: 'Returned after monitoring ended' });
   }
 
   // Missed-medicine and inactivity alerts only run while monitoring is active
   if (monitoring.status === 'active') {
     for (const item of patient.plan.checklist || []) {
       const days = missedMedDays(item, patient.plan.approvedAt);
-      if (days >= 2) alerts.push({ level: 'soon', text: `Missed "${item.task_en}" ${days} days in a row` });
+      if (days >= 2) alerts.push({ level: 'soon', code: 'missed_med', params: { task: item.task_en, days }, text: `Missed "${item.task_en}" ${days} days in a row` });
     }
   }
 
-  if (patient.plan?.status === 'draft') alerts.push({ level: 'routine', text: 'Care plan waiting for approval' });
-  if (patient.plan?.status === 'none' || !patient.plan) alerts.push({ level: 'routine', text: 'No care plan yet' });
+  if (patient.plan?.status === 'draft') alerts.push({ level: 'routine', code: 'plan_waiting', text: 'Care plan waiting for approval' });
+  if (patient.plan?.status === 'none' || !patient.plan) alerts.push({ level: 'routine', code: 'no_plan', text: 'No care plan yet' });
 
   const hoursInactive = (Date.now() - new Date(patient.lastActive).getTime()) / 3600000;
   if (monitoring.status === 'active' && hoursInactive >= 48) {
-    alerts.push({ level: 'soon', text: `No activity for ${Math.floor(hoursInactive / 24)} days` });
+    alerts.push({ level: 'soon', code: 'inactive', params: { days: Math.floor(hoursInactive / 24) }, text: `No activity for ${Math.floor(hoursInactive / 24)} days` });
   }
 
   const score =
