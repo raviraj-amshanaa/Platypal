@@ -184,6 +184,14 @@ app.post('/api/patients/:id/translate', wrap(async (req, res) => {
     translation = await ai.translateContent(p.plan, language);
     if (translation._mock) return res.json({ language, translation, mock: true }); // not a real translation: do not save it
     p.plan.translations[language] = translation;
+    if (language === p.language) {
+      // The translation at approval failed earlier; fill it in now so every screen uses it
+      p.plan.explanation_translated = translation.explanation;
+      p.plan.medications.forEach((m, i) => (m.instructions_translated = translation.medications[i]));
+      p.plan.appointments.forEach((a, i) => (a.what_translated = translation.appointments[i]));
+      p.plan.checklist.forEach((c, i) => (c.task_translated = translation.checklist[i]));
+      delete p.plan.translationFailed;
+    }
     store.save();
   }
   res.json({ language, translation });

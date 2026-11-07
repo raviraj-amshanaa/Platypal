@@ -134,6 +134,8 @@ async function translatePlan(plan, language) {
     plan.medications.forEach((m, i) => (m.instructions_translated = out.medications?.[i] || m.instructions_en));
     plan.appointments.forEach((a, i) => (a.what_translated = out.appointments?.[i] || a.what_en));
     plan.checklist.forEach((c, i) => (c.task_translated = out.checklist?.[i] || c.task_en));
+    if (!out.explanation) return mockTranslate(plan, language);
+    delete plan.translationFailed;
     return plan;
   } catch (e) {
     console.error('[ai] translatePlan failed, using mock:', e.message);
@@ -241,10 +243,11 @@ function copyEnglish(plan) {
   return plan;
 }
 
+// Translation didn't happen (no key, AI busy or too slow). Keep English and flag it,
+// so the patient and family pages translate on demand instead of showing English forever.
 function mockTranslate(plan, language) {
   copyEnglish(plan);
-  const tag = `[${langName(language)} translation appears here when an AI key is set] `;
-  plan.explanation_translated = tag + plan.explanation_en;
+  plan.translationFailed = true;
   return plan;
 }
 

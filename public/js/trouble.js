@@ -13,7 +13,9 @@ function setupTroubleForm({ patientId, lang, from, fromName, familyCode, onSent 
   const checkEmergency = () => $('emergency').classList.toggle('hidden', !looksLikeEmergency($('transcript').value));
   $('transcript').oninput = checkEmergency;
 
-  const rec = createRecognizer(lang, (text) => { $('transcript').value = text; checkEmergency(); }, (on) => {
+  // Voice notes are recognized in English only (most reliable). Patients and family can still TYPE in any language.
+  $('mic-hint').textContent = 'Voice notes are in English. Tap again to stop. You can type in any language.';
+  const rec = createRecognizer('en-US', (text) => { $('transcript').value = text; checkEmergency(); }, (on) => {
     listening = on;
     $('mic').classList.toggle('listening', on);
     $('mic').textContent = on ? '⏹ Listening… tap to stop' : '🎤 Tap to speak';
@@ -61,6 +63,16 @@ function setupTroubleForm({ patientId, lang, from, fromName, familyCode, onSent 
   };
 }
 
+// The person's own words (any language), plus the English translation the care team reads
+function messageBody(r) {
+  const original = [r.transcript, r.text].filter(Boolean).join('\n') || (r.hasPhoto ? 'Photo sent' : '');
+  const english = (r.translation || '').trim();
+  const showEnglish = english && !english.startsWith('(mock)') && english.toLowerCase() !== original.toLowerCase();
+  return `<div style="white-space:pre-wrap">${esc(original)}</div>
+    ${r.hasPhoto && original !== 'Photo sent' ? '<div class="small muted">📷 Photo attached</div>' : ''}
+    ${showEnglish ? `<div class="small" style="margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--bg)"><span class="muted">English translation:</span> ${esc(english)}</div>` : ''}`;
+}
+
 function renderReportsList(reports, { english } = {}) {
   if (!reports.length) return '';
   return '<h3 style="margin-top:12px">Your messages</h3>' + [...reports]
@@ -68,7 +80,7 @@ function renderReportsList(reports, { english } = {}) {
     .map((r) => `
       <div class="card" style="box-shadow:none">
         <div class="small muted">${timeAgo(r.createdAt)} · from ${esc(r.fromName)}</div>
-        <div>${esc(r.transcript || r.text || (r.hasPhoto ? 'Photo sent' : ''))}</div>
+        ${messageBody(r)}
         ${r.staffResponse
           ? `<div class="notice" style="margin-top:8px">💬 <strong>${esc(r.staffResponse)}</strong>${r.staffNote ? `<div style="margin-top:4px">${esc(r.staffNote)}</div>` : ''}<div class="small muted">${esc(r.respondedBy || 'Care team')}, ${timeAgo(r.respondedAt)}</div></div>`
           : `<div class="small muted" style="margin-top:6px">Waiting for your care team…</div>`}

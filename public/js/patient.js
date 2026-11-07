@@ -6,28 +6,9 @@ const translateState = {}; // language -> 'loading' | 'unavailable'
 
 const $ = (id) => document.getElementById(id);
 
-// The text to show for one language, or null if it still has to be fetched.
+// The text to show for one language, or null if it still has to be fetched (shared helper in common.js)
 function langView(plan, lang) {
-  const pick = (list, en, tr) => list.map((x, i) => (tr && tr[i]) || x[en]);
-  if (lang === 'en-US') {
-    return { explanation: plan.explanation_en, meds: pick(plan.medications, 'instructions_en'), appts: pick(plan.appointments, 'what_en'), tasks: pick(plan.checklist, 'task_en') };
-  }
-  if (lang === data.language) { // translated by the server when the nurse approved the plan
-    return {
-      explanation: plan.explanation_translated || plan.explanation_en,
-      meds: plan.medications.map((m) => m.instructions_translated || m.instructions_en),
-      appts: plan.appointments.map((a) => a.what_translated || a.what_en),
-      tasks: plan.checklist.map((c) => c.task_translated || c.task_en)
-    };
-  }
-  const tl = plan.translations && plan.translations[lang]; // translated on demand and cached
-  if (!tl) return null;
-  return {
-    explanation: tl.explanation || plan.explanation_en,
-    meds: pick(plan.medications, 'instructions_en', tl.medications),
-    appts: pick(plan.appointments, 'what_en', tl.appointments),
-    tasks: pick(plan.checklist, 'task_en', tl.checklist)
-  };
+  return planView(plan, lang, data.language);
 }
 
 async function fetchTranslation(lang) {
@@ -53,7 +34,7 @@ async function load() {
 }
 
 function render() {
-  if (!currentLang) currentLang = 'en-US';
+  if (!currentLang) currentLang = data.language || 'en-US'; // start in the patient's own language
   const sel = $('lang-select');
   if (!sel.options.length) {
     sel.innerHTML = Object.entries(LANGS).map(([code, label]) => `<option value="${esc(code)}">${esc(label)}</option>`).join('');
@@ -77,7 +58,7 @@ function render() {
       note = failed ? "We couldn't translate this right now, so it is shown in English." : 'Translating…';
       lang = 'en-US';
       view = langView(plan, lang);
-    } else if (lang !== data.language && lang !== 'en-US') {
+    } else if (lang !== 'en-US' && !(lang === data.language && approvedTranslationOk(plan))) {
       note = `Translated automatically from the plan ${plan.approvedBy} approved.`;
     }
     $('translate-note').textContent = note;
@@ -158,7 +139,7 @@ load().then(() => {
 });
 // Pick up nurse approval and replies live
 setInterval(() => {
-  if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+  if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
   api('/api/patient-view/' + patientId).then((d) => {
     if (JSON.stringify(d) !== JSON.stringify(data)) { data = d; render(); }
   }).catch(() => {});
