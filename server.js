@@ -94,10 +94,15 @@ app.post('/api/patients/:id/approve', wrap(async (req, res) => {
   const { plan, nurseName } = req.body;
   if (!nurseName) return res.status(400).json({ error: 'Nurse name is required to approve' });
   const clean = normalizeDraft(plan);
+  // Re-approving an edited plan keeps the patient's check-off history and the original approval time
+  const wasApproved = p.plan?.status === 'approved';
+  const oldLogs = Object.fromEntries((p.plan?.checklist || []).map((c) => [c.id, c.log || []]));
+  clean.checklist.forEach((c) => { if (oldLogs[c.id]) c.log = oldLogs[c.id]; });
   await ai.translatePlan(clean, p.language);
   clean.status = 'approved';
   clean.approvedBy = nurseName;
-  clean.approvedAt = now();
+  clean.approvedAt = wasApproved ? p.plan.approvedAt : now();
+  if (wasApproved) clean.updatedAt = now();
   p.plan = clean;
   store.save();
   res.json({ patient: p });
@@ -109,12 +114,15 @@ app.post('/api/patients/:id/reports/:rid/respond', (req, res) => {
   if (!p) return;
   const r = p.reports.find((x) => x.id === req.params.rid);
   if (!r) return res.status(404).json({ error: 'Report not found' });
-  const { response, severity, nurseName } = req.body;
+  const { response, severity, nurseName, note } = req.body;
   if (severity) r.severity = severity;
   if (response) {
     r.staffResponse = response;
     r.respondedBy = nurseName || 'Nurse';
     r.respondedAt = now();
+  }
+  if (typeof note === 'string' && note.trim()) {
+       r.staffNote = note.trim();
   }
   store.save();
   res.json({ report: r });
@@ -232,7 +240,10 @@ function normalizeDraft(d = {}) {
       instructions_en: m.instructions_en || '', instructions_translated: m.instructions_translated || ''
     })),
     appointments: (d.appointments || []).map((a) => ({
-      id: a.id || store.id('a'), what_en: a.what_en || '', what_translated: a.what_translated || '', when: a.when || ''
+      id: a.id || store.id('a'), what_en: a.what_en || '', what_translated: a.what_translated || '', when: a.when || '',
+      mode: a.mode === 'virtual' ? 'virtual' : 'in_person', // in_person | virtual
+      location: a.location || '', // address or clinic + room, for in-person
+      link: a.link || '' // Zoom / video call link, for virtual
     })),
     checklist: (d.checklist || []).map((c) => ({
       id: c.id || store.id('c'), type: c.type === 'med' ? 'med' : 'task',
