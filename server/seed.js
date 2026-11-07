@@ -32,7 +32,8 @@ function seed() {
             { id: 'm2', name: 'Apixaban', dose: '2.5 mg', time: '8am, 8pm', instructions_en: 'Prevents blood clots. Do not skip.', instructions_translated: 'खून के थक्के रोकता है। न छोड़ें।' }
           ],
           appointments: [
-            { id: 'a1', what_en: 'Staple removal', what_translated: 'टांके हटाना', when: 'Nov 14, 10:00am' }
+            { id: 'a1', what_en: 'Staple removal', what_translated: 'टांके हटाना', when: 'Nov 14, 10:00am', mode: 'in_person', location: 'Riverside Hospital, Orthopedic Clinic, 2nd floor, Room 204', link: '' },
+            { id: 'a2', what_en: 'Physiotherapy video check-in', what_translated: 'फिजियोथेरेपी वीडियो जांच', when: 'Nov 10, 3:00pm', mode: 'virtual', location: '', link: 'https://zoom.us/j/1234567890' }
           ],
           checklist: [
             { id: 'c1', type: 'med', task_en: 'Take morning medicines', task_translated: 'सुबह की दवाएं लें', log: [dateKey(4), dateKey(3)] },
@@ -82,7 +83,7 @@ function seed() {
             { id: 'm1', name: 'Metoprolol', dose: '25 mg', time: '8am', instructions_en: 'Heart rate. Stand up slowly.', instructions_translated: '控制心率。起身要慢。' }
           ],
           appointments: [
-            { id: 'a1', what_en: 'Cardiology follow-up', what_translated: '心脏科复诊', when: 'Nov 20, 2:30pm' }
+            { id: 'a1', what_en: 'Cardiology follow-up', what_translated: '心脏科复诊', when: 'Nov 20, 2:30pm', mode: 'virtual', location: '', link: 'https://zoom.us/j/9876543210' }
           ],
           checklist: [
             { id: 'c1', type: 'med', task_en: 'Take morning heart medicine', task_translated: '服用早晨的心脏药', log: [dateKey(2), dateKey(1), dateKey(0)] }
@@ -128,7 +129,7 @@ function seed() {
           medications: [
             { id: 'm1', name: 'Ibuprofen', dose: '400 mg', time: 'Every 8 hours with food', instructions_en: 'For pain', instructions_translated: 'Para el dolor' }
           ],
-          appointments: [{ id: 'a1', what_en: 'Surgeon follow-up', what_translated: 'Cita con el cirujano', when: 'Nov 18, 9:00am' }],
+          appointments: [{ id: 'a1', what_en: 'Surgeon follow-up', what_translated: 'Cita con el cirujano', when: 'Nov 18, 9:00am', mode: 'in_person', location: 'Riverside Hospital, General Surgery Clinic, Room 110', link: '' }],
           checklist: [
             { id: 'c1', type: 'med', task_en: 'Take pain medicine with food', task_translated: 'Tome el analgésico con comida', log: [dateKey(5), dateKey(4), dateKey(3)] }
           ]

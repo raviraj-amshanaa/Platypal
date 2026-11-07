@@ -42,7 +42,7 @@ function render() {
          <h3 style="margin-top:12px">Medicines</h3>
          <ul>${plan.medications.map((m) => `<li><strong>${esc(m.name)}</strong> ${esc(m.dose)}, ${esc(m.time)}</li>`).join('')}</ul>
          <h3>Appointments</h3>
-         <ul>${plan.appointments.map((a) => `<li><span lang="${lang}">${esc(t(a.what_en, a.what_translated))}</span> – ${esc(a.when)}</li>`).join('')}</ul>`;
+        ${plan.appointments.map((a) => appointmentHtml(a, t(a.what_en, a.what_translated), lang)).join('') || '<p class="muted">None</p>'}`;
     const btn = $('read');
     if (btn) btn.onclick = () => speak(t(plan.explanation_en, plan.explanation_translated), lang);
   }
