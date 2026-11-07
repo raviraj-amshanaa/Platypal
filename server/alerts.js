@@ -23,7 +23,20 @@ function missedMedDays(item, approvedAt) {
   return missed;
 }
 
+// Monitoring period: how long staff actively follow this patient after approval.
+// After it ends, automatic alerts stop, but the patient can still send reports.
+const DAY_MS = 86400000;
+function monitoringInfo(plan) {
+  if (!plan || plan.status !== 'approved' || !plan.approvedAt) return { status: 'not_started' };
+  const start = new Date(plan.approvedAt);
+  const ends = plan.monitorEndsAt ? new Date(plan.monitorEndsAt) : new Date(start.getTime() + (plan.monitorDays || 14) * DAY_MS);
+  const total = Math.max(1, Math.round((ends - start) / DAY_MS));
+  const day = Math.min(total, Math.floor((Date.now() - start) / DAY_MS) + 1);
+  return { status: Date.now() < ends.getTime() ? 'active' : 'ended', day, total, endsAt: ends.toISOString() };
+}
+
 function computeAlerts(patient) {
+  const monitoring = monitoringInfo(patient.plan);
   const alerts = [];
   const open = (patient.reports || []).filter((r) => !r.staffResponse);
 
@@ -32,9 +45,11 @@ function computeAlerts(patient) {
     else if (r.severity === 'urgent') alerts.push({ level: 'urgent', text: 'Urgent trouble report' });
     else if (r.severity === 'soon') alerts.push({ level: 'soon', text: 'Trouble report needs a call today' });
     else alerts.push({ level: 'routine', text: 'New routine report' });
+    if (r.afterMonitoring) alerts.push({ level: 'soon', text: 'Returned after monitoring ended' });
   }
 
-  if (patient.plan?.status === 'approved') {
+  // Missed-medicine and inactivity alerts only run while monitoring is active
+  if (monitoring.status === 'active') {
     for (const item of patient.plan.checklist || []) {
       const days = missedMedDays(item, patient.plan.approvedAt);
       if (days >= 2) alerts.push({ level: 'soon', text: `Missed "${item.task_en}" ${days} days in a row` });
@@ -45,14 +60,14 @@ function computeAlerts(patient) {
   if (patient.plan?.status === 'none' || !patient.plan) alerts.push({ level: 'routine', text: 'No care plan yet' });
 
   const hoursInactive = (Date.now() - new Date(patient.lastActive).getTime()) / 3600000;
-  if (patient.plan?.status === 'approved' && hoursInactive >= 48) {
+  if (monitoring.status === 'active' && hoursInactive >= 48) {
     alerts.push({ level: 'soon', text: `No activity for ${Math.floor(hoursInactive / 24)} days` });
   }
 
   const score =
     alerts.reduce((s, a) => s + (a.level === 'urgent' ? 100 : a.level === 'soon' ? 30 : 5), 0);
   const top = alerts.reduce((best, a) => (SEVERITY_RANK[a.level] > SEVERITY_RANK[best] ? a.level : best), 'routine');
-  return { alerts, score, top: alerts.length ? top : 'ok' };
+  return { alerts, score, top: alerts.length ? top : 'ok', monitoring };
 }
 
-module.exports = { computeAlerts, missedMedDays, SEVERITY_RANK };
+module.exports = { computeAlerts, missedMedDays, monitoringInfo, SEVERITY_RANK };
