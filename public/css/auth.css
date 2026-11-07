@@ -1,0 +1,118 @@
+/* Sign-in / sign-up design. Self-contained on purpose: it does not use styles.css, so the
+   app screens keep their own look. Tokens are ported from the design export. */
+:root {
+  --background: oklch(0.975 0.012 85);
+  --foreground: oklch(0.25 0.03 200);
+  --card: oklch(0.995 0.005 85);
+  --secondary: oklch(0.93 0.03 85);
+  --muted-foreground: oklch(0.5 0.03 200);
+  --primary: oklch(0.48 0.09 190);
+  --primary-foreground: oklch(0.98 0.01 85);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.88 0.02 85);
+  --ring: oklch(0.48 0.09 190);
+  --patient: oklch(0.55 0.1 190);
+  --family: oklch(0.68 0.14 45);
+  --staff: oklch(0.45 0.08 255);
+  --radius: 1rem;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Nunito Sans", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--font-body);
+  background: var(--background);
+  color: var(--foreground);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.auth-backdrop {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 3rem 1rem;
+  background:
+    radial-gradient(circle at 15% 20%, oklch(0.72 0.13 45 / 0.18), transparent 45%),
+    radial-gradient(circle at 85% 80%, oklch(0.55 0.1 190 / 0.18), transparent 50%),
+    var(--background);
+}
+.auth-wrap { width: 100%; max-width: 28rem; }
+.auth-brand { text-align: center; margin-bottom: 2rem; }
+.auth-brand .name { font-family: var(--font-display); font-size: 2.25rem; font-weight: 600; color: var(--primary); margin: 0; line-height: 1.2; }
+.auth-brand .tag { margin: .25rem 0 0; color: var(--muted-foreground); }
+.auth-card {
+  background: color-mix(in oklch, var(--card) 80%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px -10px oklch(0.25 0.03 200 / 0.18);
+  backdrop-filter: blur(8px);
+}
+@media (min-width: 640px) { .auth-card { padding: 2rem; } }
+
+h1.title { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; margin: 0; line-height: 1.25; }
+h1.title:focus { outline: none; }
+.sub { margin: .25rem 0 1.5rem; font-size: .875rem; color: var(--muted-foreground); }
+.foot { margin: 1.5rem 0 0; text-align: center; font-size: .875rem; color: var(--muted-foreground); }
+.foot a, .link { font-weight: 700; color: var(--primary); text-decoration: none; }
+.foot a:hover, .link:hover { text-decoration: underline; }
+
+/* role picker */
+.picker { display: grid; gap: .75rem; }
+.role {
+  display: flex; align-items: center; gap: 1rem; width: 100%;
+  padding: 1rem; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  background: var(--card); border: 1px solid var(--border); border-radius: 1rem;
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+  animation: rise .5s ease-out both;
+}
+.role:hover { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 6px 16px -6px oklch(0.25 0.03 200 / 0.25); }
+.role:focus-visible, .btn:focus-visible, input:focus-visible, .back:focus-visible, summary:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.role .ico { display: flex; width: 3rem; height: 3rem; flex: none; align-items: center; justify-content: center; border-radius: .75rem; }
+.role .ico svg { width: 1.5rem; height: 1.5rem; }
+.role.patient .ico { background: color-mix(in oklch, var(--patient) 10%, transparent); color: var(--patient); }
+.role.family .ico { background: color-mix(in oklch, var(--family) 15%, transparent); color: var(--family); }
+.role.staff .ico { background: color-mix(in oklch, var(--staff) 10%, transparent); color: var(--staff); }
+.role .t { display: block; font-family: var(--font-display); font-size: 1.125rem; font-weight: 600; }
+.role .d { display: block; font-size: .875rem; color: var(--muted-foreground); }
+
+/* form */
+form.auth-form { display: grid; gap: 1rem; animation: rise .5s ease-out both; }
+.back { display: inline-flex; align-items: center; gap: .25rem; width: fit-content; padding: 0; font: inherit; font-size: .875rem; color: var(--muted-foreground); background: none; border: 0; cursor: pointer; }
+.back:hover { color: var(--foreground); }
+.back svg { width: 1rem; height: 1rem; }
+.field { display: grid; gap: .5rem; }
+.field label { font-size: .875rem; font-weight: 700; }
+.field input {
+  width: 100%; height: 2.75rem; padding: 0 .75rem; font: inherit; font-size: 1rem;
+  color: var(--foreground); background: var(--card);
+  border: 1px solid var(--border); border-radius: .625rem;
+}
+.field input:focus-visible { border-color: var(--ring); }
+.hint { margin: 0; font-size: .75rem; color: var(--muted-foreground); }
+.error { margin: 0; font-size: .875rem; color: var(--destructive); }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 3rem;
+  font: inherit; font-weight: 700; font-size: 1rem; cursor: pointer;
+  color: var(--primary-foreground); background: var(--primary);
+  border: 1px solid var(--primary); border-radius: .75rem; transition: filter .15s;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.btn.outline { color: var(--foreground); background: transparent; border-color: var(--border); }
+.btn.outline:hover { background: var(--secondary); filter: none; }
+
+/* signed-in notice + demo accounts */
+.notice { margin-bottom: 1.25rem; padding: 1rem; text-align: center; border-radius: 1rem; background: var(--secondary); }
+.notice p { margin: 0 0 .75rem; font-size: .875rem; }
+.notice .actions { display: grid; gap: .5rem; }
+.demo { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: .875rem; }
+.demo summary { cursor: pointer; color: var(--muted-foreground); font-weight: 700; }
+.demo ul { list-style: none; margin: .75rem 0 0; padding: 0; display: grid; gap: .5rem; }
+.demo li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .5rem .75rem; background: var(--card); border: 1px solid var(--border); border-radius: .625rem; }
+.demo code { font-size: .8125rem; }
+.demo button { font: inherit; font-size: .8125rem; font-weight: 700; color: var(--primary); background: none; border: 0; cursor: pointer; }
+.demo .note { margin: .5rem 0 0; font-size: .75rem; color: var(--muted-foreground); }
+
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .role, form.auth-form { animation: none; } .role:hover { transform: none; } }

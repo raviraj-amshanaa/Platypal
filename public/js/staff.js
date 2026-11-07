@@ -271,6 +271,7 @@ function renderDetail() {
       </div>` : ''}
       ${p.alerts.length ? `<ul>${p.alerts.map((a) => `<li>${sevBadge(a.level)} ${esc(a.text)}</li>`).join('')}</ul>` : ''}
       <div class="row small"><span class="muted">Patient link:</span> <a href="${patientLink}" target="_blank">${esc(patientLink)}</a></div>
+      ${p.claimCode ? `<div class="row small"><span class="muted">Discharge code (give to the patient so they can create their account):</span> <strong style="letter-spacing:.15em">${esc(p.claimCode)}</strong></div>` : ''}
     </div>
 
     <div class="card">

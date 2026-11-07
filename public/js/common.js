@@ -161,3 +161,23 @@ function appointmentHtml(a, title, lang) {
 function qs(name) {
   return new URLSearchParams(location.search).get(name);
 }
+// Signed-in bar: shows a Sign out button in the top bar and pre-fills the nurse's name.
+(async function initSession() {
+  const bar = document.querySelector('.topbar');
+  if (!bar) return;
+  try {
+    const res = await fetch('/api/auth/me');
+    if (!res.ok) return;
+    const { user } = await res.json();
+    const nurse = document.getElementById('nurse-name');
+    if (nurse && user.role === 'staff' && user.fullName) nurse.value = user.fullName;
+    const btn = document.createElement('button');
+    btn.textContent = 'Sign out';
+    btn.title = 'Signed in as ' + user.username;
+    btn.onclick = async () => {
+      await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+      location.href = '/';
+    };
+    bar.appendChild(btn);
+  } catch {}
+})();
