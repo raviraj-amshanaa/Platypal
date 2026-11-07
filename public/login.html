@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in – Platypal</title>
+<style>
+  :root { --bg:#eef3f4; --card:#ffffff; --ink:#12232b; --muted:#42565f; --brand:#0f6b73; --on-brand:#ffffff; --line:#9fb3ba; --err:#a3141f; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0e1a1f; --card:#162830; --ink:#f1f6f7; --muted:#b2c4ca; --brand:#6cc7cf; --on-brand:#08262a; --line:#4b6670; --err:#ff9ca4; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:grid; place-items:center; padding:16px; background:var(--bg); color:var(--ink);
+         font:18px/1.5 "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif; }
+  main { width:100%; max-width:420px; background:var(--card); border:2px solid var(--line); border-radius:14px; padding:28px; }
+  h1 { margin:0 0 4px; font-size:1.7rem; line-height:1.2; }
+  .sub { margin:0 0 8px; color:var(--muted); }
+  label { display:block; margin:16px 0 6px; font-weight:700; }
+  input { width:100%; font:inherit; padding:12px; color:inherit; background:transparent; border:2px solid var(--line); border-radius:8px; }
+  button { width:100%; margin-top:20px; padding:14px; font:inherit; font-weight:700; color:var(--on-brand); background:var(--brand); border:0; border-radius:8px; cursor:pointer; }
+  :focus-visible { outline:3px solid var(--brand); outline-offset:2px; }
+  .err { min-height:1.5em; margin:12px 0 0; color:var(--err); font-weight:700; }
+  details { margin-top:24px; padding-top:16px; border-top:2px solid var(--line); }
+  summary { cursor:pointer; font-weight:700; }
+  .hint { margin:16px 0 0; color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sign in to Platypal</h1>
+  <p class="sub">Care team and patients sign in here. Families use the link from the patient.</p>
+
+  <form id="login" autocomplete="on">
+    <label for="u">Username</label>
+    <input id="u" name="username" autocomplete="username" autocapitalize="none" required>
+    <label for="p">Password</label>
+    <input id="p" name="password" type="password" autocomplete="current-password" required>
+    <p class="err" id="err" role="alert"></p>
+    <button type="submit">Sign in</button>
+  </form>
+
+  <details>
+    <summary>New care team member</summary>
+    <form id="signup">
+      <label for="sn">Your name</label>
+      <input id="sn" required>
+      <label for="su">Username</label>
+      <input id="su" autocapitalize="none" required>
+      <label for="sp">Password (8+ characters)</label>
+      <input id="sp" type="password" autocomplete="new-password" minlength="8" required>
+      <label for="sc">Staff invite code</label>
+      <input id="sc" required>
+      <p class="err" id="serr" role="alert"></p>
+      <button type="submit">Create staff account</button>
+    </form>
+  </details>
+
+  <p class="hint">Patients: your nurse gives you a username and temporary password at discharge.</p>
+</main>
+
+<script>
+  const KEY = 'platypal_token';
+  const $ = (id) => document.getElementById(id);
+
+  function go(user) {
+    const next = new URLSearchParams(location.search).get('next');
+    const safe = next && next.startsWith('/') && !next.startsWith('//');
+    const home = user.role === 'staff' ? '/staff.html' : '/patient.html?id=' + encodeURIComponent(user.patientId);
+    location.replace(safe ? next : home);
+  }
+
+  async function submit(url, body, errBox) {
+    errBox.textContent = '';
+    try {
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Could not sign in. Try again.');
+      sessionStorage.setItem(KEY, d.token);
+      go(d.user);
+    } catch (e) {
+      errBox.textContent = e.message;
+    }
+  }
+
+  $('login').addEventListener('submit', (e) => {
+    e.preventDefault();
+    submit('/api/auth/login', { username: $('u').value, password: $('p').value }, $('err'));
+  });
+  $('signup').addEventListener('submit', (e) => {
+    e.preventDefault();
+    submit('/api/auth/staff-signup', { name: $('sn').value, username: $('su').value, password: $('sp').value, code: $('sc').value }, $('serr'));
+  });
+</script>
+</body>
+</html>
