@@ -19,6 +19,8 @@ function servePage(file) {
     res.type('html').send(html);
   };
 }
+// The landing page is the sign-in page.
+app.get(['/', '/index.html'], (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 app.get('/staff.html', servePage('staff.html'));
 app.get('/patient.html', servePage('patient.html'));
 app.get('/family.html', servePage('family.html'));
