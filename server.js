@@ -4,9 +4,12 @@ const path = require('path');
 const store = require('./server/store');
 const ai = require('./server/ai');
 const { computeAlerts, monitoringInfo, SEVERITY_RANK } = require('./server/alerts');
+const auth = require('./server/auth');
 
 const app = express();
 app.use(express.json({ limit: '25mb' })); // photos arrive as base64 data URLs
+auth.init();
+auth.register(app); // sign-in API + page protection (must come before the static files)
 app.use(express.static(path.join(__dirname, 'public')));
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -72,6 +75,7 @@ app.post('/api/patients', wrap(async (req, res) => {
     reports: [], family: []
   };
   store.load().patients.push(p);
+  auth.ensureClaimCodes(); // gives the new patient a discharge code (also saves)
   store.save();
   res.json({ patient: p, mock: !!draft._mock });
 }));
