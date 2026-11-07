@@ -2,7 +2,7 @@
 
 ## Overview
 
-CareBridge AI is an AI-powered post-discharge care platform that helps patients understand and follow hospital discharge instructions while keeping healthcare staff and family caregivers informed.
+Platypal is an AI-powered post-discharge care platform that helps patients understand and follow hospital discharge instructions while keeping healthcare staff and family caregivers informed.
 
 ## Problem
 
@@ -10,7 +10,7 @@ Many patients leave the hospital confused about medications, appointments, and r
 
 ## Solution
 
-CareBridge AI transforms discharge paperwork into clear, personalized recovery plans and creates a communication bridge between healthcare staff, patients, and caregivers.
+Platypal transforms discharge paperwork into clear, personalized recovery plans and creates a communication bridge between healthcare staff, patients, and caregivers.
 
 ## Features
 
