@@ -1,4 +1,4 @@
-# CareBridge AI
+# Platypal AI
 
 ## Overview
 
@@ -61,7 +61,3 @@ CareBridge AI transforms discharge paperwork into clear, personalized recovery p
 ## Goal
 
 Reduce patient confusion after discharge, improve medication adherence, and help healthcare providers identify complications earlier through AI-assisted monitoring and communication.
-
----
-
-Built for **GitHub Hackathon 2026** 🚀
