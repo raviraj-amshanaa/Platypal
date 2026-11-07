@@ -161,7 +161,7 @@ function renderReview() {
       <input data-f="dose" value="${esc(m.dose)}" aria-label="Dose" />
       <input data-f="time" value="${esc(m.time)}" aria-label="When" />
       <input data-f="instructions_en" value="${esc(m.instructions_en)}" aria-label="Instructions" />
-      <button class="remove" aria-label="Remove">✕</button>
+      <button class="remove" aria-label="Remove this item" style="color:var(--urgent);background:var(--urgent-soft);border-color:var(--urgent);font-weight:700;justify-content:center">🗑 Remove</button>
     </div>`;
   // Each appointment: what, when, in person or virtual, then location OR video link
   const apptRow = (a = {}) => {
@@ -180,14 +180,14 @@ function renderReview() {
         <div class="appt-location ${virtual ? 'hidden' : ''}"><label class="small">Location</label><input data-f="location" value="${esc(a.location)}" placeholder="Hospital, clinic, room number" /></div>
         <div class="appt-link ${virtual ? '' : 'hidden'}"><label class="small">Video call link</label><input data-f="link" value="${esc(a.link)}" placeholder="https://zoom.us/j/..." /></div>
       </div>
-      <button class="remove small" style="margin-top:8px">Remove appointment</button>
+      <button class="remove small" style="margin-top:8px;color:var(--urgent);background:var(--urgent-soft);border-color:var(--urgent);font-weight:700">🗑 Remove appointment</button>
     </div>`;
   };
   const checkRow = (c = {}) => `
     <div class="edit-row check" data-kind="check" data-id="${esc(c.id || '')}">
       <select data-f="type" aria-label="Type"><option value="med" ${c.type === 'med' ? 'selected' : ''}>💊 Med</option><option value="task" ${c.type !== 'med' ? 'selected' : ''}>🚶 Task</option></select>
       <input data-f="task_en" value="${esc(c.task_en)}" aria-label="Checklist item" />
-      <button class="remove" aria-label="Remove">✕</button>
+      <button class="remove" aria-label="Remove this item" style="color:var(--urgent);background:var(--urgent-soft);border-color:var(--urgent);font-weight:700;justify-content:center">🗑 Remove</button>
     </div>`;
 
   const meds = document.getElementById('rv-meds');
@@ -230,6 +230,8 @@ function renderReview() {
     for (const a of edited.appointments) {
       if (a.mode === 'virtual') {
         a.location = '';
+        // "zoom.us/j/123" -> "https://zoom.us/j/123"
+        if (a.link && !/^https?:\/\//i.test(a.link)) a.link = 'https://' + a.link;
         if (!/^https?:\/\//i.test(a.link)) return toast(`Add a video call link (starting with https://) for "${a.what_en}"`);
       } else {
         a.link = '';
@@ -258,6 +260,7 @@ function renderDetail() {
       </div>
       <p class="muted small">${esc(p.procedure)} · ${esc(LANGS[p.language] || p.language)} · plan approved by ${esc(plan.approvedBy)} ${timeAgo(plan.approvedAt)}</p>
       <p><strong>${sinceDischarge(p.dischargedAt)}</strong></p>
+      ${p.monitoring && p.monitoring.status !== 'not_started' ? `
       <div class="row" style="justify-content:space-between;padding:10px 12px;border-radius:12px;background:var(--bg);margin-bottom:10px">
         <span>${monitoringLabel(p.monitoring, true)}</span>
         <span class="row">
@@ -265,7 +268,7 @@ function renderDetail() {
             ? `<button data-monitor="extend">Extend 7 days</button><button data-monitor="end">End monitoring</button>`
             : `<button class="primary" data-monitor="extend">Reopen for 7 days</button>`}
         </span>
-      </div>
+      </div>` : ''}
       ${p.alerts.length ? `<ul>${p.alerts.map((a) => `<li>${sevBadge(a.level)} ${esc(a.text)}</li>`).join('')}</ul>` : ''}
       <div class="row small"><span class="muted">Patient link:</span> <a href="${patientLink}" target="_blank">${esc(patientLink)}</a></div>
     </div>

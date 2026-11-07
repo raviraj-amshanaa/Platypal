@@ -268,7 +268,7 @@ function normalizeDraft(d = {}) {
       id: a.id || store.id('a'), what_en: a.what_en || '', what_translated: a.what_translated || '', when: a.when || '',
       mode: a.mode === 'virtual' ? 'virtual' : 'in_person', // in_person | virtual
       location: a.location || '', // address or clinic + room, for in-person
-      link: a.link || '' // Zoom / video call link, for virtual
+      link: a.link && !/^https?:\/\//i.test(a.link) ? 'https://' + a.link : a.link || '' // video call link; adds https:// if missing
     })),
     checklist: (d.checklist || []).map((c) => ({
       id: c.id || store.id('c'), type: c.type === 'med' ? 'med' : 'task',
