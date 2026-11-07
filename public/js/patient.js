@@ -26,7 +26,13 @@ function render() {
     const plan = data.plan;
     $('explanation').textContent = t(plan.explanation_en, plan.explanation_translated);
     $('explanation').lang = lang;
-    $('approved-by').textContent = `✓ Reviewed by ${plan.approvedBy}`;
+    // Monitoring status: still being followed, or ended (patient can always still reach out)
+    const m = data.monitoring;
+    const endDate = m && m.endsAt ? new Date(m.endsAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric' }) : '';
+    $('approved-by').innerHTML = `✓ Reviewed by ${esc(plan.approvedBy)}` + (
+      m?.status === 'ended'
+        ? `<div class="notice" style="margin-top:10px">Your care team's daily check-ins ended on ${endDate}. You can still contact us anytime with the button below.</div>`
+        : m?.status === 'active' ? ` · Your care team is following your recovery until ${endDate}` : '');
     $('read-expl').onclick = () => speak($('explanation').textContent, lang);
 
     $('checklist').innerHTML = plan.checklist.map((c) => {
@@ -43,7 +49,7 @@ function render() {
         <div><strong>${esc(m.name)}</strong> ${esc(m.dose)}<br><span class="muted">${esc(m.time)}</span><br><span lang="${lang}">${esc(t(m.instructions_en, m.instructions_translated))}</span></div>
         <button aria-label="Read aloud" data-say="${esc(`${m.name}. ${m.time}. ${t(m.instructions_en, m.instructions_translated)}`)}">🔊</button>
       </div>`).join('');
-      $('appts').innerHTML = plan.appointments.map((a) => appointmentHtml(a, t(a.what_en, a.what_translated), lang)).join('') || '<p class="muted">None</p>';
+    $('appts').innerHTML = plan.appointments.map((a) => appointmentHtml(a, t(a.what_en, a.what_translated), lang)).join('') || '<p class="muted">None</p>';
     document.querySelectorAll('[data-say]').forEach((b) => (b.onclick = () => speak(b.dataset.say, lang)));
   }
 
